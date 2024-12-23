@@ -1295,7 +1295,7 @@ struct AckAck {
     msg_id: u8,
 }
 
-impl<'a> AckAckRef<'a> {
+impl AckAckRef<'_> {
     pub fn is_ack_for<T: UbxPacketMeta>(&self) -> bool {
         self.class() == T::CLASS && self.msg_id() == T::ID
     }
@@ -1312,7 +1312,7 @@ struct AckNak {
     msg_id: u8,
 }
 
-impl<'a> AckNakRef<'a> {
+impl AckNakRef<'_> {
     pub fn is_nak_for<T: UbxPacketMeta>(&self) -> bool {
         self.class() == T::CLASS && self.msg_id() == T::ID
     }
@@ -1799,7 +1799,7 @@ impl<'a> CfgValIter<'a> {
     }
 }
 
-impl<'a> core::iter::Iterator for CfgValIter<'a> {
+impl core::iter::Iterator for CfgValIter<'_> {
     type Item = CfgVal;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -2395,10 +2395,10 @@ struct ScaleBack<T: FloatCore + FromPrimitive + ToPrimitive>(T);
 impl<T: FloatCore + FromPrimitive + ToPrimitive> ScaleBack<T> {
     fn as_i8(self, x: T) -> i8 {
         let x = (x * self.0).round();
-        if x < T::from_i8(i8::min_value()).unwrap() {
-            i8::min_value()
-        } else if x > T::from_i8(i8::max_value()).unwrap() {
-            i8::max_value()
+        if x < T::from_i8(i8::MIN).unwrap() {
+            i8::MIN
+        } else if x > T::from_i8(i8::MAX).unwrap() {
+            i8::MAX
         } else {
             x.to_i8().unwrap()
         }
@@ -2406,10 +2406,10 @@ impl<T: FloatCore + FromPrimitive + ToPrimitive> ScaleBack<T> {
 
     fn as_i16(self, x: T) -> i16 {
         let x = (x * self.0).round();
-        if x < T::from_i16(i16::min_value()).unwrap() {
-            i16::min_value()
-        } else if x > T::from_i16(i16::max_value()).unwrap() {
-            i16::max_value()
+        if x < T::from_i16(i16::MIN).unwrap() {
+            i16::MIN
+        } else if x > T::from_i16(i16::MAX).unwrap() {
+            i16::MAX
         } else {
             x.to_i16().unwrap()
         }
@@ -3155,7 +3155,7 @@ impl EsfMeas {
     }
 }
 
-impl<'a> EsfMeasRef<'a> {
+impl EsfMeasRef<'_> {
     fn data_len(&self) -> usize {
         self.flags().num_meas() as usize * 4
     }
@@ -3239,7 +3239,7 @@ impl<'a> EsfMeasDataIter<'a> {
     }
 }
 
-impl<'a> core::iter::Iterator for EsfMeasDataIter<'a> {
+impl core::iter::Iterator for EsfMeasDataIter<'_> {
     type Item = EsfMeasData;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -3252,7 +3252,7 @@ impl<'a> core::iter::Iterator for EsfMeasDataIter<'a> {
         }
 
         Some(EsfMeasData {
-            data_type: (((data & 0x3F000000) >> 24) as u8).try_into().unwrap(),
+            data_type: (((data & 0x3F000000) >> 24) as u8).into(),
             data_field,
         })
     }
@@ -3343,7 +3343,7 @@ impl<'a> EsfRawDataIter<'a> {
     }
 }
 
-impl<'a> core::iter::Iterator for EsfRawDataIter<'a> {
+impl core::iter::Iterator for EsfRawDataIter<'_> {
     type Item = EsfRawData;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -3659,17 +3659,17 @@ impl<'a> EsfStatusDataIter<'a> {
     }
 }
 
-impl<'a> core::iter::Iterator for EsfStatusDataIter<'a> {
+impl core::iter::Iterator for EsfStatusDataIter<'_> {
     type Item = EsfStatusData;
 
     fn next(&mut self) -> Option<Self::Item> {
         let chunk = self.0.next()?;
         let data = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
         Some(EsfStatusData {
-            sens_status1: ((data & 0xFF) as u8).try_into().unwrap(),
-            sens_status2: (((data >> 8) & 0xFF) as u8).try_into().unwrap(),
+            sens_status1: ((data & 0xFF) as u8).into(),
+            sens_status2: (((data >> 8) & 0xFF) as u8).into(),
             freq: ((data >> 16) & 0xFF).try_into().unwrap(),
-            faults: (((data >> 24) & 0xFF) as u8).try_into().unwrap(),
+            faults: (((data >> 24) & 0xFF) as u8).into(),
         })
     }
 }
@@ -4024,7 +4024,7 @@ impl<'a> DwrdIter<'a> {
     }
 }
 
-impl<'a> core::iter::Iterator for DwrdIter<'a> {
+impl core::iter::Iterator for DwrdIter<'_> {
     type Item = u32;
 
     fn next(&mut self) -> Option<Self::Item> {

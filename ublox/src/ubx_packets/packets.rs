@@ -25,6 +25,15 @@ use super::{
     UbxUnknownPacketRef, SYNC_CHAR_1, SYNC_CHAR_2,
 };
 
+/// Used to help serialize the packet's fields flattened within a struct containing the msg_id and class fields, but
+/// without using the serde FlatMapSerializer which requires alloc.
+#[cfg(feature = "serde")]
+pub(crate) trait SerializeUbxPacketFields {
+    fn serialize_fields<S>(&self, serializer: &mut S) -> Result<(), S::Error>
+    where
+        S: serde::ser::SerializeMap;
+}
+
 /// Geodetic Position Solution
 #[ubx_packet_recv]
 #[ubx(class = 1, id = 2, fixed_payload_len = 28)]
@@ -156,6 +165,66 @@ struct NavHpPosLlh {
     /// Vertical accuracy estimate (mm)
     #[ubx(map_type = f64, scale = 1e-1)]
     vertical_accuracy: u32,
+}
+
+#[ubx_extend_bitflags]
+#[ubx(from, into_raw, rest_reserved)]
+bitflags! {
+    #[derive(Default, Debug)]
+    pub struct NavHpPosEcefFlags: u8 {
+        const INVALID_ECEF = 1;
+
+    }
+}
+
+/// High Precision Geodetic Position Solution (ECEF)
+#[ubx_packet_recv]
+#[ubx(class = 0x01, id = 0x13, fixed_payload_len = 28)]
+struct NavHpPosEcef {
+    /// Message version (0 for protocol version 27)
+    version: u8,
+
+    reserved1: [u8; 3],
+
+    /// GPS Millisecond Time of Week
+    itow: u32,
+
+    /// ECEF X coordinate
+    #[ubx(map_type = f64, alias = ecef_x_cm)]
+    ecef_x: i32,
+
+    /// ECEF Y coordinate
+    #[ubx(map_type = f64, alias = ecef_y_cm)]
+    ecef_y: i32,
+
+    /// ECEF Z coordinate
+    #[ubx(map_type = f64, alias = ecef_z_cm)]
+    ecef_z: i32,
+
+    /// High precision component of X
+    /// Must be in the range -99..+99
+    /// Precise coordinate in cm = ecef_x + (ecef_x_hp * 1e-2).
+    #[ubx(map_type = f64, scale = 1e-1, alias = ecef_x_hp_mm)]
+    ecef_x_hp: i8,
+
+    /// High precision component of Y
+    /// Must be in the range -99..+99
+    /// 9. Precise coordinate in cm = ecef_y + (ecef_y_hp * 1e-2).
+    #[ubx(map_type = f64, scale = 1e-1, alias = ecef_y_hp_mm)]
+    ecef_y_hp: i8,
+
+    /// High precision component of Z
+    /// Must be in the range -99..+99
+    /// Precise coordinate in cm = ecef_z + (ecef_z_hp * 1e-2).
+    #[ubx(map_type = f64, scale = 1e-1, alias = ecef_z_hp_mm)]
+    ecef_z_hp: i8,
+
+    #[ubx(map_type = NavHpPosEcefFlags)]
+    flags: u8,
+
+    /// Horizontal accuracy estimate (mm)
+    #[ubx(map_type = f64, scale = 1e-1)]
+    p_acc: u32,
 }
 
 /// Navigation Position Velocity Time Solution
@@ -4120,6 +4189,7 @@ define_recv_packets!(
         NavSolution,
         NavVelNed,
         NavHpPosLlh,
+        NavHpPosEcef,
         NavTimeUTC,
         NavTimeLs,
         NavSat,

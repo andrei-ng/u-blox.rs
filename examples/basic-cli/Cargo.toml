@@ -1,8 +1,9 @@
 [package]
-authors = ["Lane Kolbly <lane@rscheme.org>", "Andrei Gherghescu <gandrein@pm.me>"]
+authors = ["Lane Kolbly <lane@rscheme.org>", "Andrei Gherghescu <andrei-ng@protonmail.com>"]
 edition = "2021"
 name = "basic-cli"
 publish = false
+rust-version = "1.70"
 version = "0.1.0"
 
 [dependencies]

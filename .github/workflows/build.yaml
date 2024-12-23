@@ -65,7 +65,7 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Build
-        run: cd ${{ github.workspace }}/examples && cargo build
+        run: cd ${{ github.workspace }}/examples && cargo build --release
       - name: Coding style
         run: |
           cd ${{ github.workspace }}/examples && cargo fmt --all -- --check

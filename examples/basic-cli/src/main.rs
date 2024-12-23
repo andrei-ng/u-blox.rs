@@ -282,29 +282,29 @@ Configuration includes: protocol in/out, data-bits, stop-bits, parity, baud-rate
 
         if let Some(port_id) = port_id {
             println!("Configuring '{}' port ...", port_name.to_uppercase());
-    device
-        .write_all(
-            &CfgPrtUartBuilder {
+            device
+                .write_all(
+                    &CfgPrtUartBuilder {
                         portid: port_id,
-                reserved0: 0,
-                tx_ready: 0,
+                        reserved0: 0,
+                        tx_ready: 0,
                         mode: UartMode::new(
                             ublox_databits(data_bits),
                             ublox_parity(parity),
                             ublox_stopbits(stop_bits),
                         ),
-                baud_rate: baud,
+                        baud_rate: baud,
                         in_proto_mask: inproto,
                         out_proto_mask: outproto,
-                flags: 0,
-                reserved5: 0,
-            }
-            .into_packet_bytes(),
-        )
-        .expect("Could not configure UBX-CFG-PRT-UART");
-    device
-        .wait_for_ack::<CfgPrtUart>()
-        .expect("Could not acknowledge UBX-CFG-PRT-UART msg");
+                        flags: 0,
+                        reserved5: 0,
+                    }
+                    .into_packet_bytes(),
+                )
+                .expect("Could not configure UBX-CFG-PRT-UART");
+            device
+                .wait_for_ack::<CfgPrtUart>()
+                .expect("Could not acknowledge UBX-CFG-PRT-UART msg");
         }
     }
 

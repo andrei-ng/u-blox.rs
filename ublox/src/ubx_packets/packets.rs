@@ -3210,7 +3210,7 @@ impl EsfMeasData {
             EsfSensorType::AccX | EsfSensorType::AccY | EsfSensorType::AccZ => {
                 let value = (self.data_field & 0x7FFFFF) as f32
                     * (self.direction() as f32)
-                    * 2_f32.powf(-10.0);
+                    * 2_f32.powi(-10);
                 SensorData::Value(value)
             },
             EsfSensorType::GyroTemp => {
@@ -3736,6 +3736,7 @@ impl From<u8> for EsfSensorType {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct EsfStatusSensor2 {

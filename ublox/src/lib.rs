@@ -2,7 +2,7 @@
 //!
 //! This project aims to build a pure-rust I/O library for ublox GPS devices, specifically using the UBX protocol.
 //!
-//! An example of using this library to talk to a device can be seen in the ublox_cli subfolder of this project.
+//! An example of using this library to talk to a device can be seen in the examples subfolder of this project.
 //!
 //! Constructing Packets
 //! ====================

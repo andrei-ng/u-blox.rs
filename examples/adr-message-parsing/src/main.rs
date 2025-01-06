@@ -123,6 +123,13 @@ fn main() {
 
     device
         .write_all(
+            &CfgMsgAllPortsBuilder::set_rate_for::<CfgEsfAlg>([0, 1, 0, 1, 0, 0])
+                .into_packet_bytes(),
+        )
+        .expect("Could not configure ports for UBX-CFG-ESFALG");
+
+    device
+        .write_all(
             &CfgMsgAllPortsBuilder::set_rate_for::<EsfAlg>([0, 1, 0, 1, 0, 0]).into_packet_bytes(),
         )
         .expect("Could not configure ports for UBX-ESF-INS");
@@ -150,6 +157,26 @@ fn main() {
     device
         .write_all(&UbxPacketRequest::request_for::<MonVer>().into_packet_bytes())
         .expect("Unable to write request/poll for UBX-MON-VER message");
+
+    // Configure Auto Alignment on for IMU
+    let mut flags = CfgEsfAlgFlags::default();
+    flags.set_auto_imu_mount_alg(true);
+    device
+        .write_all(
+            &ublox::CfgEsfAlgBuilder {
+                flags,
+                yaw: 5.0,
+                roll: 1.0,
+                pitch: 2.0,
+            }
+            .into_packet_bytes(),
+        )
+        .expect("Could not write UBX-CFG-ESFALG msg due to: {e}");
+
+    // Send a packet request for the MonVer packet
+    device
+        .write_all(&UbxPacketRequest::request_for::<CfgEsfAlg>().into_packet_bytes())
+        .expect("Unable to write request/poll for CFG-ESFALG message");
 
     // Start reading data
     println!("Opened uBlox device, waiting for messages...");

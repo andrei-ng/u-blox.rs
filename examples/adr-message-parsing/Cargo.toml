@@ -4,7 +4,7 @@ authors = [
     "Andrei Gherghescu <gandrein@pm.me>",
 ]
 edition = "2021"
-name = "example-basic-cli"
+name = "adr-status-messages"
 publish = false
 version = "0.1.0"
 

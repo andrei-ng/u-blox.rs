@@ -233,6 +233,7 @@ struct NavHpPosEcef {
 struct NavPvt {
     /// GPS Millisecond Time of Week
     itow: u32,
+
     year: u16,
     month: u8,
     day: u8,
@@ -243,38 +244,48 @@ struct NavPvt {
     time_accuracy: u32,
     nanosecond: i32,
 
-    /// GNSS fix Type
+    /// GNSS Fix Type
     #[ubx(map_type = GpsFix)]
     fix_type: u8,
+
     #[ubx(map_type = NavPvtFlags)]
     flags: u8,
+
     #[ubx(map_type = NavPvtFlags2)]
     flags2: u8,
+
     num_satellites: u8,
+
     #[ubx(map_type = f64, scale = 1e-7, alias = lon_degrees)]
     lon: i32,
     #[ubx(map_type = f64, scale = 1e-7, alias = lat_degrees)]
     lat: i32,
 
-    /// Height above Ellipsoid
+    /// Height above reference ellipsoid
     #[ubx(map_type = f64, scale = 1e-3)]
     height_meters: i32,
 
-    /// Height above mean sea level
+    /// Height above Mean Sea Level
     #[ubx(map_type = f64, scale = 1e-3)]
     height_msl: i32,
+
+    /// Horizontal accuracy in (m)
+    #[ubx(map_type = f64, scale = 1e-3)]
     horiz_accuracy: u32,
+
+    /// Vertical accuracy in (m)
+    #[ubx(map_type = f64, scale = 1e-3)]
     vert_accuracy: u32,
 
-    /// north velocity (m/s)
+    /// Velocity North component (m/s)
     #[ubx(map_type = f64, scale = 1e-3)]
     vel_north: i32,
 
-    /// east velocity (m/s)
+    /// Velocity East component (m/s)
     #[ubx(map_type = f64, scale = 1e-3)]
     vel_east: i32,
 
-    /// down velocity (m/s)
+    /// Velocity Down component (m/s)
     #[ubx(map_type = f64, scale = 1e-3)]
     vel_down: i32,
 
@@ -283,7 +294,7 @@ struct NavPvt {
     ground_speed: u32,
 
     /// Heading of motion 2-D (degrees)
-    #[ubx(map_type = f64, scale = 1e-5, alias = heading_degrees)]
+    #[ubx(map_type = f64, scale = 1e-5, alias = heading_motion)]
     heading: i32,
 
     /// Speed Accuracy Estimate (m/s)
@@ -295,13 +306,20 @@ struct NavPvt {
     heading_accuracy_estimate: u32,
 
     /// Position DOP
+    #[ubx(map_type = f64, scale = 1e-2)]
     pdop: u16,
-    reserved1: [u8; 6],
-    #[ubx(map_type = f64, scale = 1e-5, alias = heading_of_vehicle_degrees)]
+
+    reserved1: [u8; 5],
+    #[ubx(map_type = NavPvtFlags3)]
+    flags3: u8,
+
+    #[ubx(map_type = f64, scale = 1e-5, alias = heading_of_vehicle)]
     heading_of_vehicle: i32,
-    #[ubx(map_type = f64, scale = 1e-2, alias = magnetic_declination_degrees)]
+
+    #[ubx(map_type = f64, scale = 1e-2, alias = magnetic_declination)]
     magnetic_declination: i16,
-    #[ubx(map_type = f64, scale = 1e-2, alias = magnetic_declination_accuracy_degrees)]
+
+    #[ubx(map_type = f64, scale = 1e-2, alias = magnetic_declination_accuracy)]
     magnetic_declination_accuracy: u16,
 }
 
@@ -338,6 +356,36 @@ bitflags! {
         /// 1 = UTC Time of Day could be confirmed
         /// (confirmed by using an additional independent source)
         const CONFIRMED_TIME = 0x80;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct NavPvtFlags3 {
+    invalid_llh: bool,
+    age: u8,
+}
+
+impl NavPvtFlags3 {
+    const AGE_MASK: u8 = 0b11110;
+
+    pub fn invalid_llh(&self) -> bool {
+        self.invalid_llh
+    }
+
+    pub fn age(&self) -> u8 {
+        self.age
+    }
+}
+
+impl From<u8> for NavPvtFlags3 {
+    fn from(val: u8) -> Self {
+        let invalid = val & 0x01 == 1;
+        let age = val & Self::AGE_MASK;
+        Self {
+            invalid_llh: invalid,
+            age,
+        }
     }
 }
 
@@ -573,7 +621,7 @@ impl NavSatSvFlags {
             4 => NavSatQualityIndicator::CodeLock,
             5..=7 => NavSatQualityIndicator::CarrierLock,
             _ => {
-                panic!("Unexpected 3-bit bitfield value {}!", bits);
+                panic!("Unexpected 3-bit value {}!", bits);
             },
         }
     }
@@ -3489,7 +3537,7 @@ impl EsfAlgFlags {
             3 => EsfAlgStatus::CoarseAlignment,
             4 => EsfAlgStatus::FineAlignment,
             _ => {
-                panic!("Unexpected 3-bit bitfield value {}!", bits);
+                panic!("Unexpected 3-bit value {}!", bits);
             },
         }
     }
@@ -3574,7 +3622,9 @@ struct EsfStatus {
 
     #[ubx(map_type = EsfStatusFusionMode)]
     fusion_mode: u8,
+
     reserved2: [u8; 2],
+
     num_sens: u8,
 
     #[ubx(
@@ -3603,14 +3653,14 @@ pub enum EsfStatusFusionMode {
 pub struct EsfInitStatus1(u8);
 
 impl EsfInitStatus1 {
-    pub fn wheel_tick_init_status(self) -> EsfStatusWheelTickInitStatus {
+    pub fn wheel_tick_init_status(self) -> EsfStatusWheelTickInit {
         let bits = (self.0) & 0x03;
         match bits {
-            0 => EsfStatusWheelTickInitStatus::Off,
-            1 => EsfStatusWheelTickInitStatus::Initializing,
-            2 => EsfStatusWheelTickInitStatus::Initialized,
+            0 => EsfStatusWheelTickInit::Off,
+            1 => EsfStatusWheelTickInit::Initializing,
+            2 => EsfStatusWheelTickInit::Initialized,
             _ => {
-                panic!("Unexpected 2-bit bitfield value {}!", bits);
+                panic!("Unexpected 2-bit value {}!", bits);
             },
         }
     }
@@ -3623,19 +3673,19 @@ impl EsfInitStatus1 {
             2 => EsfStatusMountAngle::Initialized,
             3 => EsfStatusMountAngle::Initialized,
             _ => {
-                panic!("Unexpected 3-bit bitfield value {}!", bits);
+                panic!("Unexpected 3-bit value {}!", bits);
             },
         }
     }
 
-    pub fn ins_initialization_status(self) -> EsfStatusInsInitStatus {
+    pub fn ins_initialization_status(self) -> EsfStatusInsInit {
         let bits = (self.0 >> 5) & 0x03;
         match bits {
-            0 => EsfStatusInsInitStatus::Off,
-            1 => EsfStatusInsInitStatus::Initializing,
-            2 => EsfStatusInsInitStatus::Initialized,
+            0 => EsfStatusInsInit::Off,
+            1 => EsfStatusInsInit::Initializing,
+            2 => EsfStatusInsInit::Initialized,
             _ => {
-                panic!("Unexpected 2-bit bitfield value {}!", bits);
+                panic!("Unexpected 2-bit value {}!", bits);
             },
         }
     }
@@ -3653,7 +3703,7 @@ impl fmt::Debug for EsfInitStatus1 {
 
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum EsfStatusWheelTickInitStatus {
+pub enum EsfStatusWheelTickInit {
     Off = 0,
     Initializing = 1,
     Initialized = 2,
@@ -3669,7 +3719,7 @@ pub enum EsfStatusMountAngle {
 
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum EsfStatusInsInitStatus {
+pub enum EsfStatusInsInit {
     Off = 0,
     Initializing = 1,
     Initialized = 2,
@@ -3681,14 +3731,14 @@ pub enum EsfStatusInsInitStatus {
 pub struct EsfInitStatus2(u8);
 
 impl EsfInitStatus2 {
-    pub fn imu_init_status(self) -> EsfImuInitStatus {
+    pub fn imu_init_status(self) -> EsfStatusImuInit {
         let bits = (self.0) & 0x02;
         match bits {
-            0 => EsfImuInitStatus::Off,
-            1 => EsfImuInitStatus::Initializing,
-            2 => EsfImuInitStatus::Initialized,
+            0 => EsfStatusImuInit::Off,
+            1 => EsfStatusImuInit::Initializing,
+            2 => EsfStatusImuInit::Initialized,
             _ => {
-                panic!("Unexpected 2-bit bitfield value {}!", bits);
+                panic!("Unexpected 2-bit value {}!", bits);
             },
         }
     }
@@ -3704,7 +3754,7 @@ impl fmt::Debug for EsfInitStatus2 {
 
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum EsfImuInitStatus {
+pub enum EsfStatusImuInit {
     Off = 0,
     Initializing = 1,
     Initialized = 2,
@@ -3713,10 +3763,40 @@ pub enum EsfImuInitStatus {
 #[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct EsfSensorStatus {
-    pub sens_status1: SensorStatus1,
-    pub sens_status2: SensorStatus2,
-    pub freq: u8,
-    pub faults: SensorFaults,
+    sens_status1: SensorStatus1,
+    sens_status2: SensorStatus2,
+    freq: u16,
+    faults: EsfSensorFaults,
+}
+
+impl EsfSensorStatus {
+    pub fn freq(&self) -> u16 {
+        self.freq
+    }
+
+    pub fn faults(&self) -> EsfSensorFaults {
+        self.faults
+    }
+
+    pub fn sensor_type(&self) -> EsfSensorType {
+        self.sens_status1.sensor_type
+    }
+
+    pub fn sensor_used(&self) -> bool {
+        self.sens_status1.used
+    }
+
+    pub fn sensor_ready(&self) -> bool {
+        self.sens_status1.ready
+    }
+
+    pub fn calibration_status(&self) -> EsfSensorStatusCalibration {
+        self.sens_status2.calibration_status
+    }
+
+    pub fn time_status(&self) -> EsfSensorStatusTime {
+        self.sens_status2.time_status
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -3750,9 +3830,9 @@ impl core::iter::Iterator for EsfSensorStatusIter<'_> {
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SensorStatus1 {
-    pub sensor_type: EsfSensorType,
-    pub used: bool,
-    pub ready: bool,
+    sensor_type: EsfSensorType,
+    used: bool,
+    ready: bool,
 }
 
 impl From<u8> for SensorStatus1 {
@@ -3813,14 +3893,14 @@ impl From<u8> for EsfSensorType {
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct SensorStatus2 {
-    calibration_status: SensorStatusCalibration,
-    time_status: SensorStatusTime,
+    pub(crate) calibration_status: EsfSensorStatusCalibration,
+    pub(crate) time_status: EsfSensorStatusTime,
 }
 
 impl From<u8> for SensorStatus2 {
     fn from(s: u8) -> Self {
-        let calibration_status: SensorStatusCalibration = (s & 0x03).into();
-        let time_status: SensorStatusTime = ((s >> 2) & 0x03).into();
+        let calibration_status: EsfSensorStatusCalibration = (s & 0x03).into();
+        let time_status: EsfSensorStatusTime = ((s >> 2) & 0x03).into();
         Self {
             calibration_status,
             time_status,
@@ -3830,61 +3910,59 @@ impl From<u8> for SensorStatus2 {
 
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub enum SensorStatusCalibration {
+pub enum EsfSensorStatusCalibration {
     NotCalibrated = 0,
     Calibrating = 1,
     Calibrated = 2,
 }
 
-impl From<u8> for SensorStatusCalibration {
+impl From<u8> for EsfSensorStatusCalibration {
     fn from(orig: u8) -> Self {
         match orig {
-            0 => SensorStatusCalibration::NotCalibrated,
-            1 => SensorStatusCalibration::Calibrating,
-            2 => SensorStatusCalibration::Calibrated,
-            _ => SensorStatusCalibration::Calibrated,
+            0 => EsfSensorStatusCalibration::NotCalibrated,
+            1 => EsfSensorStatusCalibration::Calibrating,
+            2 => EsfSensorStatusCalibration::Calibrated,
+            _ => EsfSensorStatusCalibration::Calibrated,
         }
     }
 }
 
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub enum SensorStatusTime {
+pub enum EsfSensorStatusTime {
     NoData = 0,
     OnReceptionFirstByte = 1,
     OnEventInput = 2,
     TimeTagFromData = 3,
 }
 
-impl From<u8> for SensorStatusTime {
+impl From<u8> for EsfSensorStatusTime {
     fn from(orig: u8) -> Self {
         match orig {
-            0 => SensorStatusTime::NoData,
-            1 => SensorStatusTime::OnReceptionFirstByte,
-            2 => SensorStatusTime::OnEventInput,
-            3 => SensorStatusTime::TimeTagFromData,
-            _ => SensorStatusTime::NoData,
+            0 => EsfSensorStatusTime::NoData,
+            1 => EsfSensorStatusTime::OnReceptionFirstByte,
+            2 => EsfSensorStatusTime::OnEventInput,
+            3 => EsfSensorStatusTime::TimeTagFromData,
+            _ => EsfSensorStatusTime::NoData,
         }
     }
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub struct SensorFaults {
-    pub bad_measurement: bool,
-    pub bad_timetag: bool,
-    pub missing_measurement: bool,
-    pub noisy_measurement: bool,
+#[ubx_extend_bitflags]
+#[ubx(from, into_raw, rest_reserved)]
+bitflags! {
+#[derive(Debug, Default, Clone, Copy)]
+pub struct EsfSensorFaults: u8 {
+    const BAD_MEASUREMENT = 1;
+    const BAD_TIME_TAG = 2;
+    const MISSING_MEASUREMENT = 4;
+    const NOISY_MEASUREMENT = 8;
+}
 }
 
-impl From<u8> for SensorFaults {
+impl From<u8> for EsfSensorFaults {
     fn from(s: u8) -> Self {
-        Self {
-            bad_measurement: (s & 0x01) != 0,
-            bad_timetag: ((s >> 1) & 0x01) != 0,
-            missing_measurement: ((s >> 2) & 0x01) != 0,
-            noisy_measurement: ((s >> 3) & 0x01) != 0,
-        }
+        Self::from_bits(s).unwrap()
     }
 }
 

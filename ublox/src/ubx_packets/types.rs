@@ -94,7 +94,7 @@ impl<'a> From<&NavPvtRef<'a>> for Velocity {
     fn from(packet: &NavPvtRef<'a>) -> Self {
         Velocity {
             speed: packet.ground_speed(),
-            heading: packet.heading_degrees(),
+            heading: packet.heading_motion(),
         }
     }
 }

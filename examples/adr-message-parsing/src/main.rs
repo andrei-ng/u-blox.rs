@@ -173,10 +173,10 @@ fn main() {
         )
         .expect("Could not write UBX-CFG-ESFALG msg due to: {e}");
 
-    // Send a packet request for the MonVer packet
+    // Send packet request to read the new CfgEsfAlg
     device
         .write_all(&UbxPacketRequest::request_for::<CfgEsfAlg>().into_packet_bytes())
-        .expect("Unable to write request/poll for CFG-ESFALG message");
+        .expect("Unable to write request/poll for UBX-CFG-ESFALG message");
 
     // Start reading data
     println!("Opened uBlox device, waiting for messages...");

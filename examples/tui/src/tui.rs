@@ -1,0 +1,136 @@
+use std::{
+    error::Error,
+    io,
+    sync::mpsc::{channel, Receiver},
+    time::{Duration, Instant},
+};
+
+use log::error;
+
+use clap::ArgMatches;
+use ratatui::{
+    backend::{Backend, CrosstermBackend},
+    crossterm::{
+        event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+        execute,
+        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    },
+    Terminal,
+};
+
+use anyhow::Result;
+use tracing::{debug, info, instrument};
+
+use crate::{
+    app::{App, UbxStatus},
+    device::Device,
+    logging, ui,
+};
+
+pub fn run(cli: &ArgMatches) -> Result<(), Box<dyn Error>> {
+    let log_file = logging::initialize(cli)?;
+    let tick_rate: u64 = *cli.get_one("tui-rate").ok_or("Missing tui-rate cli arg")?;
+    let tick_rate = Duration::from_millis(tick_rate);
+
+    // trace_dbg!(level: tracing::Level::INFO,"test");
+
+    // Setup terminal
+    enable_raw_mode()?;
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+
+    let (ubx_msg_tx, ubx_msg_rs) = channel();
+
+    let device = Device::build(cli);
+    device.run(ubx_msg_tx);
+
+    let app = App::new("uBlox TUI", log_file);
+    let app_result = run_app(&mut terminal, app, tick_rate, ubx_msg_rs);
+
+    // Restore terminal
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    if let Err(err) = app_result {
+        error!("{err:?}");
+    }
+
+    Ok(())
+}
+
+fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>,
+    mut app: App,
+    tick_rate: Duration,
+    receiver: Receiver<UbxStatus>,
+) -> Result<()> {
+    let mut last_tick = Instant::now();
+    loop {
+        update_states(&mut app, &receiver);
+        terminal.draw(|frame| ui::draw(frame, &mut app))?;
+
+        let timeout = tick_rate.saturating_sub(last_tick.elapsed());
+
+        if event::poll(timeout)? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    match key.code {
+                        KeyCode::Left | KeyCode::Char('h') => app.on_left(),
+                        KeyCode::Right | KeyCode::Char('l') => app.on_right(),
+                        KeyCode::Char(c) => app.on_key(c),
+                        _ => {},
+                    }
+                }
+            }
+        }
+        if last_tick.elapsed() >= tick_rate {
+            last_tick = Instant::now();
+        }
+        if app.should_quit {
+            info!("Q/q pressed. Exiting application.");
+            println!("See the log file logs");
+            return Ok(());
+        }
+    }
+}
+
+fn update_states(app: &mut App, receiver: &Receiver<UbxStatus>) {
+    match receiver.try_recv() {
+        Ok(UbxStatus::Pvt(v)) => {
+            app.pvt_state = *v;
+        },
+        Ok(UbxStatus::MonVer(v)) => {
+            app.mon_ver_state = *v;
+        },
+        Ok(UbxStatus::EsfAlgImu(v)) => {
+            app.esf_alg_imu_alignment_state = v;
+        },
+        Ok(UbxStatus::EsfAlgStatus(v)) => {
+            app.esf_alg_state = v;
+        },
+        Ok(UbxStatus::EsfAlgSensors(v)) => {
+            app.esf_sensors_state = v;
+        },
+        _ => {}, // Err(e) => println!("Not value from channel"),
+    }
+}
+
+/// Handle events and insert them into the events vector keeping only the last 10 events
+#[instrument(skip(events))]
+fn handle_events(events: &mut Vec<Event>) -> Result<()> {
+    // Render the UI at least once every 100ms
+    if event::poll(Duration::from_millis(100))? {
+        let event = event::read()?;
+        debug!(?event);
+        events.insert(0, event);
+    }
+    events.truncate(10);
+    Ok(())
+}

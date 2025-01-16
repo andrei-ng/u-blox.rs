@@ -14,14 +14,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cli = cli::parse_args();
 
     if cli.get_flag("debug-mode") {
-        debug_mode(&cli);
+        device_debug_mode(&cli);
     } else {
-        crate::tui::run(&cli)?;
+        let log_file = logging::initialize(&cli)?;
+        crate::tui::run(&cli, log_file)?;
     }
     Ok(())
 }
 
-fn debug_mode(cli: &ArgMatches) {
+fn device_debug_mode(cli: &ArgMatches) {
     use log::error;
     env_logger::Builder::new()
         .filter_level(log::LevelFilter::Info)

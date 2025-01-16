@@ -34,7 +34,7 @@ pub fn parse_args() -> clap::ArgMatches {
                 .short('p')
                 .long("port")
                 .required(true)
-                .help("Serial port to open"),
+                .help("Serial port to open. E.g., /dev/ttyACM0"),
         )
         .arg(
             Arg::new("baud")

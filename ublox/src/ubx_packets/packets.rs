@@ -3479,6 +3479,7 @@ impl core::iter::Iterator for EsfRawDataIter<'_> {
     }
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum EsfAlgStatus {
@@ -3524,6 +3525,9 @@ struct EsfAlg {
 pub struct EsfAlgFlags(u8);
 
 impl EsfAlgFlags {
+    pub fn flags_raw(&self) -> u8 {
+        self.0
+    }
     pub fn auto_imu_mount_alg_on(self) -> bool {
         (self.0) & 0x1 != 0
     }
@@ -3653,8 +3657,12 @@ pub enum EsfStatusFusionMode {
 pub struct EsfInitStatus1(u8);
 
 impl EsfInitStatus1 {
+    const WHEEL_TICK_MASK: u8 = 0x03;
+    const MOUNTING_ANGLE_STATUS_MASK: u8 = 0x07;
+    const INS_STATUS_MASK: u8 = 0x03;
+
     pub fn wheel_tick_init_status(self) -> EsfStatusWheelTickInit {
-        let bits = (self.0) & 0x03;
+        let bits = (self.0) & Self::WHEEL_TICK_MASK;
         match bits {
             0 => EsfStatusWheelTickInit::Off,
             1 => EsfStatusWheelTickInit::Initializing,
@@ -3665,8 +3673,12 @@ impl EsfInitStatus1 {
         }
     }
 
+    pub fn wheel_tick_init_status_raw(self) -> u8 {
+        self.wheel_tick_init_status() as u8
+    }
+
     pub fn mounting_angle_status(self) -> EsfStatusMountAngle {
-        let bits = (self.0 >> 2) & 0x07;
+        let bits = (self.0 >> 2) & Self::MOUNTING_ANGLE_STATUS_MASK;
         match bits {
             0 => EsfStatusMountAngle::Off,
             1 => EsfStatusMountAngle::Initializing,
@@ -3678,8 +3690,12 @@ impl EsfInitStatus1 {
         }
     }
 
+    pub fn mount_angle_status_raw(self) -> u8 {
+        self.mounting_angle_status() as u8
+    }
+
     pub fn ins_initialization_status(self) -> EsfStatusInsInit {
-        let bits = (self.0 >> 5) & 0x03;
+        let bits = (self.0 >> 5) & Self::INS_STATUS_MASK;
         match bits {
             0 => EsfStatusInsInit::Off,
             1 => EsfStatusInsInit::Initializing,
@@ -3688,6 +3704,10 @@ impl EsfInitStatus1 {
                 panic!("Unexpected 2-bit value {}!", bits);
             },
         }
+    }
+
+    pub fn ins_initialization_status_raw(self) -> u8 {
+        self.ins_initialization_status() as u8
     }
 }
 
@@ -3701,6 +3721,7 @@ impl fmt::Debug for EsfInitStatus1 {
     }
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum EsfStatusWheelTickInit {
@@ -3709,6 +3730,7 @@ pub enum EsfStatusWheelTickInit {
     Initialized = 2,
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum EsfStatusMountAngle {
@@ -3717,6 +3739,7 @@ pub enum EsfStatusMountAngle {
     Initialized = 2,
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum EsfStatusInsInit {
@@ -3731,6 +3754,10 @@ pub enum EsfStatusInsInit {
 pub struct EsfInitStatus2(u8);
 
 impl EsfInitStatus2 {
+    pub fn imu_init_status_raw(self) -> u8 {
+        self.imu_init_status() as u8
+    }
+
     pub fn imu_init_status(self) -> EsfStatusImuInit {
         let bits = (self.0) & 0x02;
         match bits {
@@ -3752,6 +3779,7 @@ impl fmt::Debug for EsfInitStatus2 {
     }
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum EsfStatusImuInit {
@@ -3778,8 +3806,16 @@ impl EsfSensorStatus {
         self.faults
     }
 
+    pub fn faults_raw(&self) -> u8 {
+        self.faults().into_raw()
+    }
+
     pub fn sensor_type(&self) -> EsfSensorType {
         self.sens_status1.sensor_type
+    }
+
+    pub fn sensor_type_raw(&self) -> u8 {
+        self.sensor_type() as u8
     }
 
     pub fn sensor_used(&self) -> bool {
@@ -3794,8 +3830,16 @@ impl EsfSensorStatus {
         self.sens_status2.calibration_status
     }
 
+    pub fn calibration_status_raw(&self) -> u8 {
+        self.calibration_status() as u8
+    }
+
     pub fn time_status(&self) -> EsfSensorStatusTime {
         self.sens_status2.time_status
+    }
+
+    pub fn time_status_raw(&self) -> u8 {
+        self.time_status() as u8
     }
 }
 
@@ -3846,6 +3890,7 @@ impl From<u8> for SensorStatus1 {
     }
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum EsfSensorType {
@@ -3908,6 +3953,7 @@ impl From<u8> for SensorStatus2 {
     }
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum EsfSensorStatusCalibration {
@@ -3927,6 +3973,7 @@ impl From<u8> for EsfSensorStatusCalibration {
     }
 }
 
+#[repr(u8)]
 #[derive(Copy, Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum EsfSensorStatusTime {
@@ -3951,13 +3998,13 @@ impl From<u8> for EsfSensorStatusTime {
 #[ubx_extend_bitflags]
 #[ubx(from, into_raw, rest_reserved)]
 bitflags! {
-#[derive(Debug, Default, Clone, Copy)]
-pub struct EsfSensorFaults: u8 {
-    const BAD_MEASUREMENT = 1;
-    const BAD_TIME_TAG = 2;
-    const MISSING_MEASUREMENT = 4;
-    const NOISY_MEASUREMENT = 8;
-}
+    #[derive(Debug, Default, Clone, Copy)]
+    pub struct EsfSensorFaults: u8 {
+        const BAD_MEASUREMENT = 1;
+        const BAD_TIME_TAG = 2;
+        const MISSING_MEASUREMENT = 4;
+        const NOISY_MEASUREMENT = 8;
+    }
 }
 
 impl From<u8> for EsfSensorFaults {

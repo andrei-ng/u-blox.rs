@@ -450,6 +450,8 @@ impl Device {
 
     pub fn wait_for_ack<T: UbxPacketMeta>(&mut self) -> std::io::Result<()> {
         let mut found_packet = false;
+        let start = std::time::SystemTime::now();
+        let timeout = Duration::from_secs(3);
         while !found_packet {
             self.update(|packet| {
                 if let PacketRef::AckAck(ack) = packet {
@@ -458,6 +460,11 @@ impl Device {
                     }
                 }
             })?;
+
+            if start.elapsed().unwrap().as_millis() > timeout.as_millis() {
+                eprintln!("Did not receive ACK message for request");
+                break;
+            }
         }
         Ok(())
     }

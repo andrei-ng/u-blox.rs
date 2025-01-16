@@ -1,6 +1,7 @@
 use std::{
     error::Error,
     io,
+    path::PathBuf,
     sync::mpsc::{channel, Receiver},
     time::{Duration, Instant},
 };
@@ -24,11 +25,10 @@ use tracing::{debug, info, instrument};
 use crate::{
     app::{App, UbxStatus},
     device::Device,
-    logging, ui,
+    ui,
 };
 
-pub fn run(cli: &ArgMatches) -> Result<(), Box<dyn Error>> {
-    let log_file = logging::initialize(cli)?;
+pub fn run(cli: &ArgMatches, log_file: PathBuf) -> Result<(), Box<dyn Error>> {
     let tick_rate: u64 = *cli.get_one("tui-rate").ok_or("Missing tui-rate cli arg")?;
     let tick_rate = Duration::from_millis(tick_rate);
 

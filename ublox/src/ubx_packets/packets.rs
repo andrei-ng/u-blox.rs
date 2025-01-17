@@ -4122,10 +4122,19 @@ struct HnrPvt {
     #[ubx(map_type = f64, scale = 1e-5, alias = heading_vehicle)]
     head_veh: i32,
 
+    /// Horizontal accuracy in [m] converted from raw [mm] data
+    #[ubx(map_type = f64, scale = 1e-3, alias = horizontal_accuracy)]
     h_acc: u32,
+
+    /// Vertical accuracy in [m] converted from raw [mm] data
+    #[ubx(map_type = f64, scale = 1e-3, alias = vertical_accuracy)]
     v_acc: u32,
+
+    /// Speed accuracy in [m/s] converted from raw [mm/s] data
+    #[ubx(map_type = f64, scale = 1e-3, alias = speed_accuracy)]
     s_acc: u32,
 
+    /// Heading accuracy in [deg] converted from raw data
     #[ubx(map_type = f64, scale = 1e-5, alias = heading_accurracy)]
     head_acc: u32,
 

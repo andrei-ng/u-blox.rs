@@ -6,7 +6,7 @@ authors = [
 edition = "2021"
 name = "adr-status-messages"
 publish = false
-version = "0.1.0"
+version = "0.0.1"
 
 [dependencies]
 chrono = "0.4"

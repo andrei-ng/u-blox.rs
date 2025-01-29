@@ -3,7 +3,7 @@ authors = ["Andrei Gherghescu <gandrein@pm.me>"]
 edition = "2021"
 name = "send-receive-multiple-threads"
 publish = false
-version = "0.1.0"
+version = "0.0.1"
 
 [dependencies]
 chrono = "0.4"

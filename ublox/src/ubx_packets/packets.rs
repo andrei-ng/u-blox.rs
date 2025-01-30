@@ -334,11 +334,11 @@ bitflags! {
     /// Fix status flags for `NavPvt`
     #[derive(Debug)]
     pub struct NavPvtFlags: u8 {
-        /// position and velocity valid and within DOP and ACC Masks
+        /// Position and velocity valid and within DOP and ACC Masks
         const GPS_FIX_OK = 1;
-        /// DGPS used
+        /// Differential corrections were applied; DGPS used
         const DIFF_SOLN = 2;
-        /// 1 = heading of vehicle is valid
+        /// Heading of vehicle is valid
         const HEAD_VEH_VALID = 0x20;
         const CARR_SOLN_FLOAT = 0x40;
         const CARR_SOLN_FIXED = 0x80;
@@ -368,28 +368,32 @@ bitflags! {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NavPvtFlags3 {
     invalid_llh: bool,
-    age: u8,
+    age_differential_correction: u8,
 }
 
 impl NavPvtFlags3 {
-    const AGE_MASK: u8 = 0b11110;
+    const AGE_DIFFERENTIAL_CORRECTION_MASK: u8 = 0b11110;
 
     pub fn invalid_llh(&self) -> bool {
         self.invalid_llh
     }
 
-    pub fn age(&self) -> u8 {
-        self.age
+    /// F9R interface descritpion document specifies that this byte is unused
+    #[cfg(feature = "ubx_series8")]
+    pub fn age_differential_correction(&self) -> u8 {
+        self.age_differential_correction
     }
 }
 
 impl From<u8> for NavPvtFlags3 {
     fn from(val: u8) -> Self {
         let invalid = val & 0x01 == 1;
-        let age = val & Self::AGE_MASK;
+        // F9R interface descritpion document specifies that this byte is unused
+        // We can read it ... but we don't expose it
+        let age_differential_correction = val & Self::AGE_DIFFERENTIAL_CORRECTION_MASK;
         Self {
             invalid_llh: invalid,
-            age,
+            age_differential_correction,
         }
     }
 }

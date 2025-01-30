@@ -83,8 +83,8 @@ impl<'a> From<&NavVelNedRef<'a>> for Velocity {
 impl<'a> From<&NavPvtRef<'a>> for Position {
     fn from(packet: &NavPvtRef<'a>) -> Self {
         Position {
-            lon: packet.lon_degrees(),
-            lat: packet.lat_degrees(),
+            lon: packet.longitude(),
+            lat: packet.latitude(),
             alt: packet.height_msl(),
         }
     }
@@ -93,7 +93,7 @@ impl<'a> From<&NavPvtRef<'a>> for Position {
 impl<'a> From<&NavPvtRef<'a>> for Velocity {
     fn from(packet: &NavPvtRef<'a>) -> Self {
         Velocity {
-            speed: packet.ground_speed(),
+            speed: packet.ground_speed_2d(),
             heading: packet.heading_motion(),
         }
     }
@@ -115,12 +115,12 @@ impl<'a> TryFrom<&NavPvtRef<'a>> for DateTime<Utc> {
         )
         .ok_or(DateTimeError::InvalidTime)?;
         const NANOS_LIM: u32 = 1_000_000_000;
-        if (sol.nanosecond().wrapping_abs() as u32) >= NANOS_LIM {
+        if (sol.nanosec().wrapping_abs() as u32) >= NANOS_LIM {
             return Err(DateTimeError::InvalidNanoseconds);
         }
 
         let dt = NaiveDateTime::new(date, time)
-            + chrono::Duration::nanoseconds(i64::from(sol.nanosecond()));
+            + chrono::Duration::nanoseconds(i64::from(sol.nanosec()));
 
         Ok(DateTime::from_naive_utc_and_offset(dt, Utc))
     }

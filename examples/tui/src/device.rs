@@ -260,7 +260,7 @@ impl Device {
                         state.hour = pkg.hour();
                         state.min = pkg.min();
                         state.sec = pkg.sec();
-                        state.nanosecond = pkg.nanosecond();
+                        state.nanosecond = pkg.nanosec();
 
                         state.utc_time_accuracy = pkg.time_accuracy();
                     }
@@ -268,16 +268,16 @@ impl Device {
                     state.position_fix_type = pkg.fix_type();
                     state.fix_flags = pkg.flags();
 
-                    state.lat = pkg.lat_degrees();
-                    state.lon = pkg.lon_degrees();
-                    state.height = pkg.height_meters();
+                    state.lat = pkg.latitude();
+                    state.lon = pkg.longitude();
+                    state.height = pkg.height_above_ellipsoid();
                     state.msl = pkg.height_msl();
 
                     state.vel_ned = (pkg.vel_north(), pkg.vel_east(), pkg.vel_down());
 
-                    state.speed_over_ground = pkg.ground_speed();
+                    state.speed_over_ground = pkg.ground_speed_2d();
                     state.heading_motion = pkg.heading_motion();
-                    state.heading_vehicle = pkg.heading_of_vehicle();
+                    state.heading_vehicle = pkg.heading_vehicle();
 
                     state.magnetic_declination = pkg.magnetic_declination();
 
@@ -286,9 +286,9 @@ impl Device {
                     state.satellites_used = pkg.num_satellites();
 
                     state.invalid_llh = pkg.flags3().invalid_llh();
-                    state.position_accuracy = (pkg.horiz_accuracy(), pkg.vert_accuracy());
-                    state.velocity_accuracy = pkg.speed_accuracy_estimate();
-                    state.heading_accuracy = pkg.heading_accuracy_estimate();
+                    state.position_accuracy = (pkg.horizontal_accuracy(), pkg.vertical_accuracy());
+                    state.velocity_accuracy = pkg.speed_accuracy();
+                    state.heading_accuracy = pkg.heading_accuracy();
                     state.magnetic_declination_accuracy = pkg.magnetic_declination_accuracy();
 
                     sender.send(UbxStatus::Pvt(Box::new(state))).unwrap();

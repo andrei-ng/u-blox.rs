@@ -1,8 +1,5 @@
 [package]
-authors = [
-    "Lane Kolbly <lane@rscheme.org>",
-    "Andrei Gherghescu <gandrein@pm.me>",
-]
+authors = ["Andrei Gherghescu <gandrein@pm.me>"]
 edition = "2021"
 name = "adr-status-messages"
 publish = false

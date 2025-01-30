@@ -81,4 +81,5 @@ pub use crate::{
 
 mod error;
 mod parser;
+#[cfg(any(feature = "ubx_series8", feature = "ubx_series9"))]
 mod ubx_packets;

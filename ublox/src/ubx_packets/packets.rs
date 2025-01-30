@@ -426,6 +426,147 @@ struct NavStatus {
     uptime_ms: u32,
 }
 
+#[cfg(feature = "proto_series8")]
+#[ubx_packet_recv]
+#[ubx(class = 0x01, id = 0x3c, fixed_payload_len = 40)]
+struct NavRelPosNed {
+    version: u8,
+    reserved1: u8,
+    ref_station_id: u16,
+    /// GPS Millisecond Time of Week
+    itow: u32,
+    rel_pos_n: i32,
+    rel_pos_e: i32,
+    rel_pos_d: i32,
+    rel_pos_hpn: i8,
+    rel_pos_hpe: i8,
+    rel_pos_hpd: i8,
+    reserved2: u8,
+    acc_n: u32,
+    acc_e: u32,
+    acc_d: u32,
+
+    #[ubx(map_type = NavRelPosNedFlags)]
+    flags: u32,
+}
+
+#[cfg(feature = "proto_series9")]
+#[ubx_packet_recv]
+#[ubx(class = 0x01, id = 0x3c, fixed_payload_len = 64)]
+struct NavRelPosNed {
+    version: u8,
+    _reserved0: u8,
+    ref_station_id: u16,
+
+    /// GPS Millisecond Time of Week
+    itow: u32,
+
+    rel_pos_n: i32,
+    rel_pos_e: i32,
+    rel_pos_d: i32,
+    rel_pos_length: i32,
+    rel_pos_heading: i32,
+    _reserved1: u32,
+    rel_pos_hpn: i8,
+    rel_pos_hpe: i8,
+    rel_pos_hpd: i8,
+    rel_pos_hp_length: i8,
+    acc_n: u32,
+    acc_e: u32,
+    acc_d: u32,
+    acc_length: u32,
+    acc_heading: u32,
+    _reserved2: u32,
+
+    #[ubx(map_type = NavRelPosNedFlags)]
+    flags: u32,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum CarrierPhaseRangeSolutionStatus {
+    /// No carrier phase range solution
+    NoSolution,
+    /// Carrier phase range solution with floating ambiguities
+    SolutionWithFloatingAmbiguities,
+    /// Carrier phase range solution with fixed ambiguities
+    SolutionWithFixedAmbiguities,
+}
+
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct NavRelPosNedFlags(u32);
+
+impl NavRelPosNedFlags {
+    pub fn gnss_fix_ok(&self) -> bool {
+        self.0 & 0x1 != 0
+    }
+
+    pub fn diff_soln(&self) -> bool {
+        (self.0 >> 1) & 0x1 != 0
+    }
+
+    pub fn rel_pos_valid(&self) -> bool {
+        (self.0 >> 2) & 0x1 != 0
+    }
+
+    pub fn carr_soln(&self) -> CarrierPhaseRangeSolutionStatus {
+        match (self.0 >> 3) & 0x3 {
+            0 => CarrierPhaseRangeSolutionStatus::NoSolution,
+            1 => CarrierPhaseRangeSolutionStatus::SolutionWithFloatingAmbiguities,
+            2 => CarrierPhaseRangeSolutionStatus::SolutionWithFixedAmbiguities,
+            unknown => panic!("Unexpected 2-bit bitfield value {}!", unknown),
+        }
+    }
+
+    pub fn is_moving(&self) -> bool {
+        (self.0 >> 5) & 0x1 != 0
+    }
+
+    pub fn ref_pos_miss(&self) -> bool {
+        (self.0 >> 6) & 0x1 != 0
+    }
+
+    pub fn ref_obs_miss(&self) -> bool {
+        (self.0 >> 7) & 0x1 != 0
+    }
+
+    #[cfg(feature = "proto_series9")]
+    pub fn rel_pos_heading_valid(&self) -> bool {
+        (self.0 >> 8) & 0x1 != 0
+    }
+
+    #[cfg(feature = "proto_series9")]
+    pub fn rel_pos_normalized(&self) -> bool {
+        (self.0 >> 9) & 0x1 != 0
+    }
+
+    pub const fn from(x: u32) -> Self {
+        Self(x)
+    }
+}
+
+impl fmt::Debug for NavRelPosNedFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut dbg_struct = f.debug_struct("NavRelPosNedFlags");
+        dbg_struct
+            .field("gnss_fix_ok", &self.gnss_fix_ok())
+            .field("diff_soln", &self.diff_soln())
+            .field("rel_pos_valid", &self.rel_pos_valid())
+            .field("carr_soln", &self.carr_soln())
+            .field("is_moving", &self.is_moving())
+            .field("ref_pos_miss", &self.ref_pos_miss())
+            .field("ref_obs_miss", &self.ref_obs_miss());
+
+        #[cfg(feature = "proto_series9")]
+        dbg_struct
+            .field("rel_pos_heading_valid", &self.rel_pos_heading_valid())
+            .field("rel_pos_normalized", &self.rel_pos_normalized());
+
+        dbg_struct.finish()
+    }
+}
+
 /// Dilution of precision
 #[ubx_packet_recv]
 #[ubx(class = 1, id = 4, fixed_payload_len = 18)]
@@ -2801,42 +2942,6 @@ struct MgaGpsIono {
     reserved2: [u8; 4],
 }
 
-#[ubx_packet_recv]
-#[ubx(class = 0x13, id = 0x00, fixed_payload_len = 68)]
-struct MgaGpsEph {
-    msg_type: u8,
-    version: u8,
-    sv_id: u8,
-    reserved1: u8,
-    fit_interval: u8,
-    ura_index: u8,
-    sv_health: u8,
-    tgd: i8,
-    iodc: u16,
-    toc: u16,
-    reserved2: u8,
-    af2: i8,
-    af1: i16,
-    af0: i32,
-    crs: i16,
-    delta_n: i16,
-    m0: i32,
-    cuc: i16,
-    cus: i16,
-    e: u32,
-    sqrt_a: u32,
-    toe: u16,
-    cic: i16,
-    omega0: i32,
-    cis: i16,
-    crc: i16,
-    i0: i32,
-    omega: i32,
-    omega_dot: i32,
-    idot: i16,
-    reserved3: [u8; 2],
-}
-
 /// Time pulse time data
 #[ubx_packet_recv]
 #[ubx(class = 0x0d, id = 0x01, fixed_payload_len = 16)]
@@ -4267,7 +4372,7 @@ struct NavVelECEF {
 
 #[ubx_packet_recv]
 #[ubx(class = 0x13, id = 0x00, fixed_payload_len = 68)]
-struct MgaGpsEPH {
+struct MgaGpsEph {
     msg_type: u8,
     version: u8,
     sv_id: u8,
@@ -4403,24 +4508,6 @@ struct SecUniqId {
 define_recv_packets!(
     enum PacketRef {
         _ = UbxUnknownPacketRef,
-        NavPosLlh,
-        NavStatus,
-        NavDop,
-        NavPvt,
-        NavSolution,
-        NavVelNed,
-        NavHpPosLlh,
-        NavHpPosEcef,
-        NavTimeUTC,
-        NavTimeLs,
-        NavSat,
-        NavEoe,
-        NavOdo,
-        CfgOdo,
-        MgaAck,
-        MgaGpsIono,
-        MgaGpsEph,
-        MgaGloEph,
         AlpSrv,
         AckAck,
         AckNak,
@@ -4430,37 +4517,55 @@ define_recv_packets!(
         CfgPrtUart,
         CfgNav5,
         CfgAnt,
+        CfgOdo,
         CfgTmode2,
         CfgTmode3,
         CfgTp5,
         CfgEsfAlg,
+        EsfAlg,
+        EsfIns,
+        EsfMeas,
+        EsfStatus,
+        EsfRaw,
+        HnrAtt,
+        HnrIns,
+        HnrPvt,
         InfError,
         InfWarning,
         InfNotice,
         InfTest,
         InfDebug,
-        RxmRawx,
-        TimTp,
-        TimTm2,
         MonVer,
         MonGnss,
         MonHw,
-        RxmRtcm,
-        EsfAlg,
-        EsfIns,
-        EsfMeas,
-        EsfStatus,
-        HnrAtt,
-        HnrIns,
-        HnrPvt,
+        MgaAck,
+        MgaGpsIono,
+        MgaGpsEph,
+        MgaGloEph,
+        NavRelPosNed,
+        NavDop,
+        NavPvt,
+        NavPosLlh,
+        NavSolution,
+        NavStatus,
+        NavVelNed,
+        NavHpPosLlh,
+        NavHpPosEcef,
+        NavTimeUTC,
+        NavTimeLs,
+        NavSat,
+        NavEoe,
+        NavOdo,
         NavAtt,
         NavClock,
         NavVelECEF,
-        MgaGpsEPH,
+        RxmRawx,
+        RxmRtcm,
         RxmSfrbx,
-        EsfRaw,
-        TimSvin,
         SecUniqId,
+        TimTp,
+        TimTm2,
+        TimSvin,
     }
 );
 

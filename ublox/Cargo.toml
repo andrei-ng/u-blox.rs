@@ -13,12 +13,13 @@ repository = "https://github.com/lkolbly/ublox"
 version = "0.0.1"
 
 [features]
-alloc = []
-default = ["std", "serde", "ubx_series8"]
-std = []
-
 ubx_series8 = []
 ubx_series9 = []
+default = ["std", "serde", "ubx_series8"]
+
+alloc = []
+std = []
+
 
 [dependencies]
 bitflags = "2.3"

@@ -73,35 +73,35 @@ struct NavVelNed {
     /// GPS Millisecond Time of Week
     itow: u32,
 
-    /// north velocity (m/s)
+    /// north velocity [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     vel_north: i32,
 
-    /// east velocity (m/s)
+    /// east velocity [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     vel_east: i32,
 
-    /// down velocity (m/s)
+    /// down velocity [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     vel_down: i32,
 
-    /// Speed 3-D (m/s)
+    /// Speed 3-D [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     speed_3d: u32,
 
-    /// Ground speed (m/s)
+    /// Ground speed [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     ground_speed: u32,
 
-    /// Heading of motion 2-D (degrees)
+    /// Heading of motion 2-D [deg]
     #[ubx(map_type = f64, scale = 1e-5, alias = heading_degrees)]
     heading: i32,
 
-    /// Speed Accuracy Estimate (m/s)
+    /// Speed Accuracy Estimate [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     speed_accuracy_estimate: u32,
 
-    /// Course / Heading Accuracy Estimate (degrees)
+    /// Course / Heading Accuracy Estimate [deg]
     #[ubx(map_type = f64, scale = 1e-5)]
     course_heading_accuracy_estimate: u32,
 }
@@ -126,11 +126,11 @@ struct NavHpPosLlh {
     #[ubx(map_type = f64, scale = 1e-7, alias = lat_degrees)]
     lat: i32,
 
-    /// Height above Ellipsoid (m)
+    /// Height above Ellipsoid [m]
     #[ubx(map_type = f64, scale = 1e-3)]
     height_meters: i32,
 
-    /// Height above mean sea level (m)
+    /// Height above mean sea level [m]
     #[ubx(map_type = f64, scale = 1e-3)]
     height_msl: i32,
 
@@ -240,9 +240,11 @@ struct NavPvt {
     hour: u8,
     min: u8,
     sec: u8,
+
     valid: u8,
     time_accuracy: u32,
-    nanosecond: i32,
+
+    nanosec: i32,
 
     /// GNSS Fix Type
     #[ubx(map_type = GpsFix)]
@@ -256,54 +258,57 @@ struct NavPvt {
 
     num_satellites: u8,
 
-    #[ubx(map_type = f64, scale = 1e-7, alias = lon_degrees)]
+    /// Longitude in [deg]
+    #[ubx(map_type = f64, scale = 1e-7, alias = longitude)]
     lon: i32,
-    #[ubx(map_type = f64, scale = 1e-7, alias = lat_degrees)]
+
+    /// Latitude in [deg]
+    #[ubx(map_type = f64, scale = 1e-7, alias = latitude)]
     lat: i32,
 
-    /// Height above reference ellipsoid
-    #[ubx(map_type = f64, scale = 1e-3)]
-    height_meters: i32,
+    /// Height above reference ellipsoid in [m]
+    #[ubx(map_type = f64, scale = 1e-3, alias = height_above_ellipsoid)]
+    height: i32,
 
-    /// Height above Mean Sea Level
+    /// Height above Mean Sea Level in [m]
     #[ubx(map_type = f64, scale = 1e-3)]
     height_msl: i32,
 
-    /// Horizontal accuracy in (m)
-    #[ubx(map_type = f64, scale = 1e-3)]
-    horiz_accuracy: u32,
+    /// Horizontal accuracy in [m]
+    #[ubx(map_type = f64, scale = 1e-3, alias = horizontal_accuracy )]
+    h_acc: u32,
 
-    /// Vertical accuracy in (m)
-    #[ubx(map_type = f64, scale = 1e-3)]
-    vert_accuracy: u32,
+    /// Vertical accuracy in [m]
+    #[ubx(map_type = f64, scale = 1e-3, alias = vertical_accuracy )]
+    v_acc: u32,
 
-    /// Velocity North component (m/s)
+    /// Velocity North component [m/s]
     #[ubx(map_type = f64, scale = 1e-3)]
     vel_north: i32,
 
-    /// Velocity East component (m/s)
+    /// Velocity East component [m/s]
     #[ubx(map_type = f64, scale = 1e-3)]
     vel_east: i32,
 
-    /// Velocity Down component (m/s)
+    /// Velocity Down component [m/s]
     #[ubx(map_type = f64, scale = 1e-3)]
     vel_down: i32,
 
-    /// Ground speed (m/s)
-    #[ubx(map_type = f64, scale = 1e-3)]
-    ground_speed: u32,
+    /// Ground speed [m/s]
+    #[ubx(map_type = f64, scale = 1e-3, alias = ground_speed_2d)]
+    g_speed: u32,
 
-    /// Heading of motion 2-D (degrees)
+    /// Heading of motion 2-D [deg]
     #[ubx(map_type = f64, scale = 1e-5, alias = heading_motion)]
-    heading: i32,
+    head_motion: i32,
 
-    /// Speed Accuracy Estimate (m/s)
-    #[ubx(map_type = f64, scale = 1e-3)]
-    speed_accuracy_estimate: u32,
+    /// Speed Accuracy Estimate [m/s]
+    #[ubx(map_type = f64, scale = 1e-3, alias = speed_accuracy)]
+    s_acc: u32,
 
-    /// Heading accuracy estimate (both motionand vehicle) (degrees)
-    #[ubx(map_type = f64, scale = 1e-5)]
-    heading_accuracy_estimate: u32,
+    /// Heading accuracy estimate (for both vehicle and motion) [deg]
+    #[ubx(map_type = f64, scale = 1e-5, alias = heading_accuracy)]
+    head_acc: u32,
 
     /// Position DOP
     #[ubx(map_type = f64, scale = 1e-2)]
@@ -313,8 +318,8 @@ struct NavPvt {
     #[ubx(map_type = NavPvtFlags3)]
     flags3: u8,
 
-    #[ubx(map_type = f64, scale = 1e-5, alias = heading_of_vehicle)]
-    heading_of_vehicle: i32,
+    #[ubx(map_type = f64, scale = 1e-5, alias = heading_vehicle)]
+    head_vehicle: i32,
 
     #[ubx(map_type = f64, scale = 1e-2, alias = magnetic_declination)]
     magnetic_declination: i16,
@@ -488,15 +493,15 @@ struct NavSolution {
     #[ubx(map_type = f64, scale = 1e-2)]
     position_accuracy_estimate: u32,
 
-    /// ECEF X velocity (m/s)
+    /// ECEF X velocity [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     ecef_vx: i32,
 
-    /// ECEF Y velocity (m/s)
+    /// ECEF Y velocity [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     ecef_vy: i32,
 
-    /// ECEF Z velocity (m/s)
+    /// ECEF Z velocity [m/s]
     #[ubx(map_type = f64, scale = 1e-2)]
     ecef_vz: i32,
 
@@ -2299,7 +2304,7 @@ struct CfgNav5 {
     #[ubx(map_type = CfgNav5FixMode, may_fail)]
     fix_mode: u8,
 
-    /// Fixed altitude (mean sea level) for 2D fixmode (m)
+    /// Fixed altitude (mean sea level) for 2D fixmode [m]
     #[ubx(map_type = f64, scale = 0.01)]
     fixed_alt: i32,
 
@@ -2321,7 +2326,7 @@ struct CfgNav5 {
     #[ubx(map_type = f32, scale = 0.1)]
     tdop: u16,
 
-    /// Position Accuracy Mask (m)
+    /// Position Accuracy Mask [m]
     pacc: u16,
 
     /// Time Accuracy Mask
@@ -3998,13 +4003,13 @@ impl From<u8> for EsfSensorStatusTime {
 #[ubx_extend_bitflags]
 #[ubx(from, into_raw, rest_reserved)]
 bitflags! {
-    #[derive(Debug, Default, Clone, Copy)]
-    pub struct EsfSensorFaults: u8 {
-        const BAD_MEASUREMENT = 1;
-        const BAD_TIME_TAG = 2;
-        const MISSING_MEASUREMENT = 4;
-        const NOISY_MEASUREMENT = 8;
-    }
+#[derive(Debug, Default, Clone, Copy)]
+pub struct EsfSensorFaults: u8 {
+    const BAD_MEASUREMENT = 1;
+    const BAD_TIME_TAG = 2;
+    const MISSING_MEASUREMENT = 4;
+    const NOISY_MEASUREMENT = 8;
+}
 }
 
 impl From<u8> for EsfSensorFaults {
@@ -4079,7 +4084,9 @@ bitflags! {
 #[ubx(class = 0x28, id = 0x00, fixed_payload_len = 72)]
 #[derive(Debug)]
 struct HnrPvt {
+    /// GPS Millisecond Time of Week
     itow: u32,
+
     year: u16,
     month: u8,
     day: u8,
@@ -4089,24 +4096,30 @@ struct HnrPvt {
 
     #[ubx(map_type = HnrPvtValidFlags)]
     valid: u8,
-    nano: i32,
+
+    nanosec: i32,
+
     #[ubx(map_type = GpsFix)]
-    gps_fix: u8,
+    fix_type: u8,
 
     #[ubx(map_type = HnrPvtFlags)]
     flags: u8,
 
     reserved1: [u8; 2],
 
+    /// Longitude in [deg]
     #[ubx(map_type = f64, scale = 1e-7, alias = longitude)]
     lon: i32,
 
+    /// Latitude in [deg]
     #[ubx(map_type = f64, scale = 1e-7, alias = latitude)]
     lat: i32,
 
+    /// Height above reference ellipsoid in [m]
     #[ubx(map_type = f64, scale = 1e-3, alias = height_above_ellipsoid)]
     height: i32,
 
+    /// Height above Mean Sea Level in [m]
     #[ubx(map_type = f64, scale = 1e-3, alias = height_msl)]
     height_msl: i32,
 
@@ -4117,24 +4130,24 @@ struct HnrPvt {
     speed: i32,
 
     #[ubx(map_type = f64, scale = 1e-5, alias = heading_motion)]
-    head_mot: i32,
+    head_motion: i32,
 
     #[ubx(map_type = f64, scale = 1e-5, alias = heading_vehicle)]
-    head_veh: i32,
+    head_vehicle: i32,
 
-    /// Horizontal accuracy in [m] converted from raw [mm] data
-    #[ubx(map_type = f64, scale = 1e-3, alias = horizontal_accuracy)]
+    /// Horizontal accuracy in [m]
+    #[ubx(map_type = f64, scale = 1e-3, alias = horizontal_accuracy )]
     h_acc: u32,
 
-    /// Vertical accuracy in [m] converted from raw [mm] data
-    #[ubx(map_type = f64, scale = 1e-3, alias = vertical_accuracy)]
+    /// Vertical accuracy in [m]
+    #[ubx(map_type = f64, scale = 1e-3, alias = vertical_accuracy )]
     v_acc: u32,
 
-    /// Speed accuracy in [m/s] converted from raw [mm/s] data
-    #[ubx(map_type = f64, scale = 1e-3, alias = speed_accuracy)]
+    /// Speed accuracy in [m/s]
+    #[ubx(map_type = f64, scale = 1e-3, alias = speed_accuracy )]
     s_acc: u32,
 
-    /// Heading accuracy in [deg] converted from raw data
+    /// Heading accuracy estimate (for both vehicle and motion) [deg]
     #[ubx(map_type = f64, scale = 1e-5, alias = heading_accurracy)]
     head_acc: u32,
 

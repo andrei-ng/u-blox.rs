@@ -130,12 +130,6 @@ fn main() {
 
     device
         .write_all(
-            &CfgMsgAllPortsBuilder::set_rate_for::<EsfAlg>([0, 1, 0, 1, 0, 0]).into_packet_bytes(),
-        )
-        .expect("Could not configure ports for UBX-ESF-INS");
-
-    device
-        .write_all(
             &CfgMsgAllPortsBuilder::set_rate_for::<NavPvt>([0, 0, 0, 0, 0, 0]).into_packet_bytes(),
         )
         .expect("Could not configure ports for UBX-NAV-PVT");
@@ -173,12 +167,40 @@ fn main() {
         )
         .expect("Could not write UBX-CFG-ESFALG msg due to: {e}");
 
-    // Send packet request to read the new CfgEsfAlg
     device
         .write_all(&UbxPacketRequest::request_for::<CfgEsfAlg>().into_packet_bytes())
         .expect("Unable to write request/poll for UBX-CFG-ESFALG message");
 
-    // Start reading data
+    device
+        .write_all(
+            &CfgMsgAllPortsBuilder::set_rate_for::<CfgEsfAlg>([0, 1, 0, 1, 0, 0])
+                .into_packet_bytes(),
+        )
+        .expect("Could not configure ports for UBX-ESF-INS");
+
+    // Configure Wheel Speed for ESF
+    device
+        .write_all(
+            &ublox::CfgEsfWtBuilder {
+                flags1: CfgEsfWtFlags1::USE_WHEEL_TICK_SPEED,
+                wt_frequency: 13,
+                ..Default::default()
+            }
+            .into_packet_bytes(),
+        )
+        .expect("Could not write UBX-CFG-ESFALG msg due to: {e}");
+
+    device
+        .write_all(&UbxPacketRequest::request_for::<CfgEsfWt>().into_packet_bytes())
+        .expect("Unable to write request/poll for UBX-CFG-ESFALG message");
+
+    device
+        .write_all(
+            &CfgMsgAllPortsBuilder::set_rate_for::<CfgEsfWt>([0, 1, 0, 1, 0, 0])
+                .into_packet_bytes(),
+        )
+        .expect("Could not configure ports for UBX-ESF-INS");
+
     println!("Opened uBlox device, waiting for messages...");
     loop {
         device
@@ -191,6 +213,14 @@ fn main() {
                         packet.extension().collect::<Vec<&str>>()
                     );
                 },
+                PacketRef::CfgEsfWt(msg) => {
+                    println!("Received: {:?}", msg);
+                },
+                PacketRef::CfgEsfAlg(msg) => {
+                    println!("Received: {:?}", msg);
+                },
+
+
                 PacketRef::EsfStatus(status) => {
                     println!(
                         "EsfStatus: tow: {}, version: {}, {:?},{:?}, fusion_mode: {:?}, num_sens: {}",
@@ -215,9 +245,8 @@ fn main() {
                     }
                     println!("calib_tag: {:?}", msg.calib_tag());
                 },
-
                 _ => {
-                    println!("{:?}", packet);
+                    {} //println!("{:?}", packet);
                 },
             })
             .unwrap();

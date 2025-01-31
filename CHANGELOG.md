@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/) a
 
 ## [0.1.0] - 2025-xx-xx
 ### Added
+- [[#28](https://github.com/andrei-ng/u-blox.rs/pull/28)] Add UBX-CFG-ESFWT message 
 - [[#27](https://github.com/andrei-ng/u-blox.rs/pull/27)] Merge [ublox-rs/ublox/pull/24](https://github.com/ublox-rs/ublox/pull/24) PR that adds `UBX-NAV-RELPOSNED` into this repository.
     - remove duplicate package definition `MgaGpsEph`
     - add features flags to differentiate between uBlox Series 8 and uBlox Series 9 devices; As  `UBX-NAV-RELPOSNED` has different lengths depending on the protocol /series.

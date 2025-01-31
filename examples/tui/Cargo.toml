@@ -4,7 +4,7 @@ edition = "2021"
 name = "ublox-tui"
 publish = false
 rust-version = "1.70"
-version = "0.0.1"
+version = "0.1.0"
 
 [dependencies]
 anyhow = "1.0"

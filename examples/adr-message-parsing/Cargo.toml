@@ -3,7 +3,7 @@ authors = ["Andrei Gherghescu <gandrein@pm.me>"]
 edition = "2021"
 name = "adr-status-messages"
 publish = false
-version = "0.0.1"
+version = "0.1.0"
 
 [dependencies]
 chrono = "0.4"

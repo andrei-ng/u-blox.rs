@@ -37,7 +37,7 @@ impl CommandBuilder {
                 .short('p')
                 .long("port")
                 .required(true)
-                .help("Serial port to open"),
+                .help("Serial port to open to connect to uBlox device"),
         )
         .arg(
             Arg::new("baud")
@@ -47,12 +47,12 @@ impl CommandBuilder {
                 .required(false)
                 .default_value("9600")
                 .value_parser(value_parser!(u32))
-                .help("Baud rate of the port to open"),
+                .help("Baud rate for the selected port"),
         )
         .arg(
             Arg::new("stop-bits")
                 .long("stop-bits")
-                .help("Number of stop bits to use for opened port")
+                .help("Number of stop bits for the selected port")
                 .required(false)
                 .value_parser(["1", "2"])
                 .default_value("1"),
@@ -60,7 +60,7 @@ impl CommandBuilder {
         .arg(
             Arg::new("data-bits")
                 .long("data-bits")
-                .help("Number of data bits to use for opened port")
+                .help("Number of data bits for the selected port")
                 .required(false)
                 .value_parser(["7", "8"])
                 .default_value("8"),
@@ -68,13 +68,13 @@ impl CommandBuilder {
         .arg(
             Arg::new("parity")
                 .long("parity")
-                .help("Parity to use for open port")
+                .help("Parity to use for selected port")
                 .required(false)
                 .value_parser(["even", "odd"]),
         )
         .subcommand(
             clap::Command::new("configure")
-                .about("Configure settings for specific UART/USB port")
+                .about("Select configuration settings for specific UART/USB port to send to uBlox as a configuration message")
                 .arg(
                     Arg::new("port")
                         .long("select")

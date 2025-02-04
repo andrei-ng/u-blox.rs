@@ -11,8 +11,11 @@ version = "0.0.1"
 
 [features]
 alloc = []
-default = ["std", "serde"]
+default = ["std", "serde", "proto_series8"]
 std = []
+
+proto_series8 = []
+proto_series9 = []
 
 [dependencies]
 bitflags = "2.3"

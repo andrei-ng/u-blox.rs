@@ -123,16 +123,9 @@ fn main() {
 
     device
         .write_all(
-            &CfgMsgAllPortsBuilder::set_rate_for::<CfgEsfAlg>([0, 1, 0, 1, 0, 0])
-                .into_packet_bytes(),
+            &CfgMsgAllPortsBuilder::set_rate_for::<EsfAlg>([0, 1, 0, 1, 0, 0]).into_packet_bytes(),
         )
-        .expect("Could not configure ports for UBX-CFG-ESFALG");
-
-    device
-        .write_all(
-            &CfgMsgAllPortsBuilder::set_rate_for::<NavPvt>([0, 0, 0, 0, 0, 0]).into_packet_bytes(),
-        )
-        .expect("Could not configure ports for UBX-NAV-PVT");
+        .expect("Could not configure ports for UBX-ESF-ALG");
 
     device
         .write_all(
@@ -146,6 +139,12 @@ fn main() {
             &CfgMsgAllPortsBuilder::set_rate_for::<EsfMeas>([0, 1, 0, 1, 0, 0]).into_packet_bytes(),
         )
         .expect("Could not configure ports for UBX-ESF-MEAS");
+
+    device
+        .write_all(
+            &CfgMsgAllPortsBuilder::set_rate_for::<NavPvt>([0, 0, 0, 0, 0, 0]).into_packet_bytes(),
+        )
+        .expect("Could not configure ports for UBX-NAV-PVT");
 
     // Send a packet request for the MonVer packet
     device
@@ -176,7 +175,7 @@ fn main() {
             &CfgMsgAllPortsBuilder::set_rate_for::<CfgEsfAlg>([0, 1, 0, 1, 0, 0])
                 .into_packet_bytes(),
         )
-        .expect("Could not configure ports for UBX-ESF-INS");
+        .expect("Could not configure ports for UBX-CFG-ESF-ALG");
 
     // Configure Wheel Speed for ESF
     device
@@ -192,14 +191,14 @@ fn main() {
 
     device
         .write_all(&UbxPacketRequest::request_for::<CfgEsfWt>().into_packet_bytes())
-        .expect("Unable to write request/poll for UBX-CFG-ESFALG message");
+        .expect("Unable to write request/poll for UBX-CFG-ESF-WT message");
 
     device
         .write_all(
             &CfgMsgAllPortsBuilder::set_rate_for::<CfgEsfWt>([0, 1, 0, 1, 0, 0])
                 .into_packet_bytes(),
         )
-        .expect("Could not configure ports for UBX-ESF-INS");
+        .expect("Could not configure ports for UBX-CFG-ESF-WT");
 
     println!("Opened uBlox device, waiting for messages...");
     loop {

@@ -40,9 +40,10 @@ jobs:
     strategy:
       matrix:
         feature-args:
-          - --all-features
-          - --no-default-features --features alloc
-          - --no-default-features
+          - --features "alloc std ubx_series8" # - --all-features
+          - --no-default-features --features "alloc ubx_series8" 
+          - --no-default-features --features ubx_series8
+          - --no-default-features --features ubx_series9
     steps:
       - uses: actions/checkout@v4
       - name: Setup toolchain

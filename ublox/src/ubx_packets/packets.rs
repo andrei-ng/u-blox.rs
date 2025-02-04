@@ -426,7 +426,7 @@ struct NavStatus {
     uptime_ms: u32,
 }
 
-#[cfg(feature = "proto_series8")]
+#[cfg(feature = "ubx_series8")]
 #[ubx_packet_recv]
 #[ubx(class = 0x01, id = 0x3c, fixed_payload_len = 40)]
 struct NavRelPosNed {
@@ -450,7 +450,7 @@ struct NavRelPosNed {
     flags: u32,
 }
 
-#[cfg(feature = "proto_series9")]
+#[cfg(feature = "ubx_series9")]
 #[ubx_packet_recv]
 #[ubx(class = 0x01, id = 0x3c, fixed_payload_len = 64)]
 struct NavRelPosNed {
@@ -531,12 +531,12 @@ impl NavRelPosNedFlags {
         (self.0 >> 7) & 0x1 != 0
     }
 
-    #[cfg(feature = "proto_series9")]
+    #[cfg(feature = "ubx_series9")]
     pub fn rel_pos_heading_valid(&self) -> bool {
         (self.0 >> 8) & 0x1 != 0
     }
 
-    #[cfg(feature = "proto_series9")]
+    #[cfg(feature = "ubx_series9")]
     pub fn rel_pos_normalized(&self) -> bool {
         (self.0 >> 9) & 0x1 != 0
     }
@@ -558,7 +558,7 @@ impl fmt::Debug for NavRelPosNedFlags {
             .field("ref_pos_miss", &self.ref_pos_miss())
             .field("ref_obs_miss", &self.ref_obs_miss());
 
-        #[cfg(feature = "proto_series9")]
+        #[cfg(feature = "ubx_series9")]
         dbg_struct
             .field("rel_pos_heading_valid", &self.rel_pos_heading_valid())
             .field("rel_pos_normalized", &self.rel_pos_normalized());

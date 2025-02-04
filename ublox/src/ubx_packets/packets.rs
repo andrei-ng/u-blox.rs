@@ -368,32 +368,41 @@ bitflags! {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NavPvtFlags3 {
     invalid_llh: bool,
+    #[cfg(feature = "ubx_proto23")]
     age_differential_correction: u8,
 }
 
 impl NavPvtFlags3 {
-    const AGE_DIFFERENTIAL_CORRECTION_MASK: u8 = 0b11110;
-
     pub fn invalid_llh(&self) -> bool {
         self.invalid_llh
     }
 
     /// F9R interface descritpion document specifies that this byte is unused
-    #[cfg(feature = "ubx_series8")]
+    #[cfg(feature = "ubx_proto23")]
     pub fn age_differential_correction(&self) -> u8 {
         self.age_differential_correction
     }
 }
 
 impl From<u8> for NavPvtFlags3 {
+    #[cfg(feature = "ubx_proto23")]
     fn from(val: u8) -> Self {
+        const AGE_DIFFERENTIAL_CORRECTION_MASK: u8 = 0b11110;
         let invalid = val & 0x01 == 1;
         // F9R interface descritpion document specifies that this byte is unused
         // We can read it ... but we don't expose it
-        let age_differential_correction = val & Self::AGE_DIFFERENTIAL_CORRECTION_MASK;
+        let age_differential_correction = val & AGE_DIFFERENTIAL_CORRECTION_MASK;
         Self {
             invalid_llh: invalid,
             age_differential_correction,
+        }
+    }
+
+    #[cfg(not(feature = "ubx_proto23"))]
+    fn from(val: u8) -> Self {
+        let invalid = val & 0x01 == 1;
+        Self {
+            invalid_llh: invalid,
         }
     }
 }
@@ -430,7 +439,7 @@ struct NavStatus {
     uptime_ms: u32,
 }
 
-#[cfg(feature = "ubx_series8")]
+#[cfg(feature = "ubx_proto23")]
 #[ubx_packet_recv]
 #[ubx(class = 0x01, id = 0x3c, fixed_payload_len = 40)]
 struct NavRelPosNed {
@@ -454,7 +463,7 @@ struct NavRelPosNed {
     flags: u32,
 }
 
-#[cfg(feature = "ubx_series9")]
+#[cfg(any(feature = "ubx_proto27", feature = "ubx_proto31"))]
 #[ubx_packet_recv]
 #[ubx(class = 0x01, id = 0x3c, fixed_payload_len = 64)]
 struct NavRelPosNed {
@@ -535,12 +544,12 @@ impl NavRelPosNedFlags {
         (self.0 >> 7) & 0x1 != 0
     }
 
-    #[cfg(feature = "ubx_series9")]
+    #[cfg(feature = "ubx_proto27")]
     pub fn rel_pos_heading_valid(&self) -> bool {
         (self.0 >> 8) & 0x1 != 0
     }
 
-    #[cfg(feature = "ubx_series9")]
+    #[cfg(feature = "ubx_proto27")]
     pub fn rel_pos_normalized(&self) -> bool {
         (self.0 >> 9) & 0x1 != 0
     }
@@ -562,7 +571,7 @@ impl fmt::Debug for NavRelPosNedFlags {
             .field("ref_pos_miss", &self.ref_pos_miss())
             .field("ref_obs_miss", &self.ref_obs_miss());
 
-        #[cfg(feature = "ubx_series9")]
+        #[cfg(feature = "ubx_proto27")]
         dbg_struct
             .field("rel_pos_heading_valid", &self.rel_pos_heading_valid())
             .field("rel_pos_normalized", &self.rel_pos_normalized());
@@ -4210,6 +4219,7 @@ impl From<u8> for EsfSensorFaults {
     }
 }
 
+#[cfg(feature = "ubx_proto23")]
 #[ubx_packet_recv]
 #[ubx(class = 0x28, id = 0x01, fixed_payload_len = 32)]
 struct HnrAtt {
@@ -4230,9 +4240,10 @@ struct HnrAtt {
     acc_heading: u32,
 }
 
+#[cfg(feature = "ubx_proto23")]
 #[ubx_packet_recv]
 #[ubx(class = 0x28, id = 0x02, fixed_payload_len = 36)]
-pub struct HnrIns {
+struct HnrIns {
     #[ubx(map_type = HnrInsBitFlags)]
     bitfield: u32,
     reserved: [u8; 4],
@@ -4272,6 +4283,7 @@ bitflags! {
     }
 }
 
+#[cfg(feature = "ubx_proto23")]
 #[ubx_packet_recv]
 #[ubx(class = 0x28, id = 0x00, fixed_payload_len = 72)]
 #[derive(Debug)]
@@ -4592,6 +4604,9 @@ struct SecUniqId {
     unique_id: [u8; 5],
 }
 
+// TODO: how to split this in module while using the proc_macros
+// in my first noob attempt I failed as the proc_macros fail due to visibility issues
+#[cfg(feature = "ubx_proto23")]
 define_recv_packets!(
     enum PacketRef {
         _ = UbxUnknownPacketRef,
@@ -4615,9 +4630,72 @@ define_recv_packets!(
         EsfMeas,
         EsfStatus,
         EsfRaw,
+        InfError,
+        InfWarning,
+        InfNotice,
+        InfTest,
+        InfDebug,
         HnrAtt,
         HnrIns,
         HnrPvt,
+        MonVer,
+        MonGnss,
+        MonHw,
+        MgaAck,
+        MgaGpsIono,
+        MgaGpsEph,
+        MgaGloEph,
+        NavRelPosNed,
+        NavDop,
+        NavPvt,
+        NavPosLlh,
+        NavSolution,
+        NavStatus,
+        NavVelNed,
+        NavHpPosLlh,
+        NavHpPosEcef,
+        NavTimeUTC,
+        NavTimeLs,
+        NavSat,
+        NavEoe,
+        NavOdo,
+        NavAtt,
+        NavClock,
+        NavVelECEF,
+        RxmRawx,
+        RxmRtcm,
+        RxmSfrbx,
+        SecUniqId,
+        TimTp,
+        TimTm2,
+        TimSvin,
+    }
+);
+
+#[cfg(feature = "ubx_proto27")]
+define_recv_packets!(
+    enum PacketRef {
+        _ = UbxUnknownPacketRef,
+        AlpSrv,
+        AckAck,
+        AckNak,
+        CfgItfm,
+        CfgPrtI2c,
+        CfgPrtSpi,
+        CfgPrtUart,
+        CfgNav5,
+        CfgAnt,
+        CfgOdo,
+        CfgTmode2,
+        CfgTmode3,
+        CfgTp5,
+        CfgEsfAlg,
+        CfgEsfWt,
+        EsfAlg,
+        EsfIns,
+        EsfMeas,
+        EsfStatus,
+        EsfRaw,
         InfError,
         InfWarning,
         InfNotice,
@@ -4657,6 +4735,68 @@ define_recv_packets!(
     }
 );
 
+#[cfg(feature = "ubx_proto31")]
+define_recv_packets!(
+    enum PacketRef {
+        _ = UbxUnknownPacketRef,
+        AlpSrv,
+        AckAck,
+        AckNak,
+        CfgItfm,
+        CfgPrtI2c,
+        CfgPrtSpi,
+        CfgPrtUart,
+        CfgNav5,
+        CfgAnt,
+        CfgOdo,
+        CfgTmode2,
+        CfgTmode3,
+        CfgTp5,
+        CfgEsfAlg,
+        CfgEsfWt,
+        EsfAlg,
+        EsfIns,
+        EsfMeas,
+        EsfStatus,
+        EsfRaw,
+        InfError,
+        InfWarning,
+        InfNotice,
+        InfTest,
+        InfDebug,
+        MonVer,
+        MonGnss,
+        MonHw,
+        MgaAck,
+        MgaGpsIono,
+        MgaGpsEph,
+        MgaGloEph,
+        NavRelPosNed,
+        NavDop,
+        NavPvt,
+        NavPosLlh,
+        NavSolution,
+        NavStatus,
+        NavVelNed,
+        NavHpPosLlh,
+        NavHpPosEcef,
+        NavTimeUTC,
+        NavTimeLs,
+        NavSat,
+        NavEoe,
+        NavOdo,
+        NavAtt,
+        NavClock,
+        NavVelECEF,
+        RxmRawx,
+        RxmRtcm,
+        RxmSfrbx,
+        SecUniqId,
+        TimTp,
+        TimTm2,
+        TimSvin,
+    }
+);
 #[cfg(test)]
 mod test {
     use super::*;

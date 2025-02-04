@@ -3270,6 +3270,7 @@ pub enum TimTm2TimeBase {
     Utc,
 }
 
+#[cfg(feature = "ubx_proto23")]
 /// Time pulse time & frequency data
 #[ubx_packet_recv]
 #[ubx(class = 0x0D, id = 0x12, fixed_payload_len = 56)]
@@ -3303,7 +3304,7 @@ struct TimTos {
     week: u32,
     /// GNSS time of week
     tow: u32,
-    /// Time offset between the preceding pulse and GNSS top of second 
+    /// Time offset between the preceding pulse and GNSS top of second
     gnss_offset: i32,
     /// Uncertainty of GNSS offset
     gnss_uncertainty: u32,
@@ -3320,7 +3321,7 @@ struct TimTos {
 #[ubx_extend_bitflags]
 #[ubx(from, into_raw, rest_reserved)]
 bitflags! {
-    #[derive(Default)]
+    #[derive(Default, Debug)]
     pub struct TimTosFlags: u32 {
         /// Currently in a leap second
         const LEAP_NOW = 0x01;
@@ -4485,16 +4486,6 @@ struct NavAtt {
     acc_heading: u32,
 }
 
-#[ubx_packet_recv]
-#[ubx(class = 0x01, id = 0x22, fixed_payload_len = 20)]
-struct NavClock {
-    itow: u32,
-    clk_b: i32,
-    clk_d: i32,
-    t_acc: u32,
-    f_acc: u32,
-}
-
 #[ubx_extend_bitflags]
 #[ubx(from, rest_reserved)]
 bitflags! {
@@ -4752,30 +4743,31 @@ define_recv_packets!(
         MgaGpsIono,
         MgaGpsEph,
         MgaGloEph,
-        NavRelPosNed,
+        NavAtt,
+        NavClock,
         NavDop,
+        NavEoe,
+        NavHpPosLlh,
+        NavHpPosEcef,
+        NavOdo,
         NavPvt,
         NavPosLlh,
+        NavRelPosNed,
+        NavSat,
         NavSolution,
         NavStatus,
         NavVelNed,
-        NavHpPosLlh,
-        NavHpPosEcef,
         NavTimeUTC,
         NavTimeLs,
-        NavSat,
-        NavEoe,
-        NavOdo,
-        NavAtt,
-        NavClock,
         NavVelECEF,
         RxmRawx,
         RxmRtcm,
         RxmSfrbx,
         SecUniqId,
+        TimSvin,
         TimTp,
         TimTm2,
-        TimSvin,
+        TimTos,
     }
 );
 
@@ -4815,30 +4807,30 @@ define_recv_packets!(
         MgaGpsIono,
         MgaGpsEph,
         MgaGloEph,
-        NavRelPosNed,
+        NavAtt,
+        NavClock,
         NavDop,
+        NavEoe,
+        NavHpPosLlh,
+        NavHpPosEcef,
+        NavOdo,
         NavPvt,
         NavPosLlh,
+        NavRelPosNed,
+        NavSat,
         NavSolution,
         NavStatus,
         NavVelNed,
-        NavHpPosLlh,
-        NavHpPosEcef,
         NavTimeUTC,
         NavTimeLs,
-        NavSat,
-        NavEoe,
-        NavOdo,
-        NavAtt,
-        NavClock,
         NavVelECEF,
         RxmRawx,
         RxmRtcm,
         RxmSfrbx,
         SecUniqId,
+        TimSvin,
         TimTp,
         TimTm2,
-        TimSvin,
     }
 );
 
@@ -4878,30 +4870,30 @@ define_recv_packets!(
         MgaGpsIono,
         MgaGpsEph,
         MgaGloEph,
-        NavRelPosNed,
+        NavAtt,
+        NavClock,
         NavDop,
+        NavEoe,
+        NavHpPosLlh,
+        NavHpPosEcef,
+        NavOdo,
         NavPvt,
         NavPosLlh,
+        NavRelPosNed,
+        NavSat,
         NavSolution,
         NavStatus,
         NavVelNed,
-        NavHpPosLlh,
-        NavHpPosEcef,
         NavTimeUTC,
         NavTimeLs,
-        NavSat,
-        NavEoe,
-        NavOdo,
-        NavAtt,
-        NavClock,
         NavVelECEF,
         RxmRawx,
         RxmRtcm,
         RxmSfrbx,
         SecUniqId,
+        TimSvin,
         TimTp,
         TimTm2,
-        TimSvin,
     }
 );
 #[cfg(test)]

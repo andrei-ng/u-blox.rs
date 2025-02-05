@@ -1460,10 +1460,10 @@ impl From<u32> for CfgItfmAntennaSettings {
     }
 }
 
-/// Multi-GNSS config
 /// GNSS system types
 #[repr(u8)]
 #[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum GnssId {
     GPS = 0,
     SBAS = 1,
@@ -1474,110 +1474,178 @@ pub enum GnssId {
     GLONASS = 6,
 }
 
+impl TryFrom<u8> for GnssId {
+    type Error = &'static str;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(GnssId::GPS),
+            1 => Ok(GnssId::SBAS),
+            2 => Ok(GnssId::GALILEO),
+            3 => Ok(GnssId::BEIDOU),
+            4 => Ok(GnssId::IMES),
+            5 => Ok(GnssId::QZSS),
+            6 => Ok(GnssId::GLONASS),
+            _ => Err("Invalid GnssId value: value must be in range [0, 6]"),
+        }
+    }
+}
+
+/// Signal configuration mask
+/// Bits 23-16 of flags in CFG-GNSS
+#[repr(u8)]
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub enum SigCfgMask {
+    GPSL1CA,
+    GPSL2C,
+    GPSL5,
+    SBASL1CA,
+    GALILEOE1,
+    GALILEOE5A,
+    GALILEOE5B,
+    BEIDOUB1I,
+    BEIDOUB1C,
+    BEIDOUB2A,
+    QZSSL1CA,
+    QZSSL1S,
+    QZSSL2C,
+    QZSSL5,
+    GLONASSL10F,
+    GLONASSL20F,
+    Unknown,
+}
+/// Multi-GNSS config
 /// Deprecatred in protocol versions above 23
-// #[ubx_packet_recv_send]
-// #[ubx(
-//     class = 0x06,
-//     id = 0x3e,
-//     fixed_payload_len = 12,
-//     flags = "default_for_builder"
-// )]
-// #[cfg(feature = "ubx_proto23")]
-// struct CfgGnss {
-//     /// Message version (0 for this version)
-//     msg_version: u8,
-//     /// Number of tracking channels hardware (read only)
-//     num_trk_ch_hw: u8,
-//     /// Number of tracking channels to use (<= numTrkChHw) (read/write)
-//     num_trk_ch_use: u8,
-//     /// Number of config blocks to follow (only 1 supported)
-//     num_config_blocks: u8,
+// Cannot use the ubx_packet_recv_send macro as this packet is
+// of variable length
+#[cfg(feature = "ubx_proto23")]
+#[ubx_packet_recv]
+#[ubx(class = 0x06, id = 0x3e, max_payload_len = 1024)]
+struct CfgGnss {
+    /// Message version (0 for this version)
+    msg_version: u8,
+    /// Number of tracking channels hardware (read only)
+    num_trk_ch_hw: u8,
+    /// Number of tracking channels to use (<= numTrkChHw) (read/write)
+    num_trk_ch_use: u8,
+    /// Number of config blocks to follow
+    num_config_blocks: u8,
 
-//     //#[ubx(map_type = GnssBlockIter,
-//     //    may_fail,
-//     //    is_valid = gnssblock::is_valid,
-//     //    from = gnssblock::convert_to_iter,
-//     //    into = gnssblock::into_raw,
-//     //    get_as_ref)]
-//     //blocks: [u8; 0],
-//     gnss_id: u8,    // GNSS identifier (see [GnssId])
-//     res_trk_ch: u8, // Minimum number of tracking channels reserved for this GNSS (read only)
-//     max_trk_ch: u8, // maximum number of tracking channels supported by this GNSS (read only)
-//     reserved1: u8,  // reserved
-//     flags: u32,     // Flags bit mask
-//     //
-//     // Bits 23-16 - sigCfgMask
-//     // Depends on the GNSS id
-//     // 0 - GPS
-//     //   0x01: L1C/A
-//     //   0x10: L2C
-//     //   0x20: L5
-//     // 1 - SBAS
-//     //   0x001: SBAS L1C/A
-//     // 2 - Galileo
-//     //   0x01: E1
-//     //   0x10: E5A
-//     //   0x20: E5B
-//     // 3 - Beidou 3
-//     //   0x01: B1I
-//     //   0x10: B1C
-//     //   0x80: B2A
-//     // 5 - QZSS
-//     //   0x01: L1C/A
-//     //   0x04: L1S
-//     //   0x10: L2C
-//     //   0x20: L5
-//     // 6 - GloNASS
-//     //   0x01: L1OF
-//     //   0x10: L2OF
-//     //
-// }
+    #[ubx(
+       map_type = GnssConfigBlockIter<'a>,
+       from = GnssConfigBlockIter::new,
+       size_fn = data_len,
+       is_valid = GnssConfigBlockIter::is_valid,
+       may_fail,
+    )]
+    blocks: [u8; 0],
+}
 
-// #[ubx_packet_recv_send]
-// #[ubx(class = 0x06, id = 0x3e, fixed_payload_len = 8)]
-// struct GnssBlock<'a> {
-//     gnss_id: u8,
-//     res_trk_ch: u8,
-//     max_trk_ch: u8,
-//     reserved1: u8,
-//     flags: u32,
-// }
+#[cfg(feature = "ubx_proto23")]
+impl CfgGnssRef<'_> {
+    const BLOCK_SIZE: usize = 8;
+    fn data_len(&self) -> usize {
+        self.num_config_blocks() as usize * Self::BLOCK_SIZE
+    }
+}
 
-// #[derive(Debug)]
-// pub struct GnssBlockIter<'a> {
-//     data: &'a [u8],
-//     offset: usize,
-//     }
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+pub struct GnssConfigBlock {
+    /// GNSS identifier (see [GnssId])
+    pub gnss_id: GnssId,
+    /// Minimum number of tracking channels reserved for this GNSS (read only)
+    pub res_trk_ch: u8,
+    /// maximum number of tracking channels supported by this GNSS (read only)
+    pub max_trk_ch: u8,
 
-// impl<'a> core::iter::Iterator for GnssBlockIter<'a> {
-//     type Item = GnssBlockRef<'a>;
+    pub reserved1: u8,
+    pub flags: u32,
+}
 
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.offset < self.data.len() {
-//             let data = &self.data[self.offset..self.offset + 8];
-//             self.offset += 8;
-//             Some(GnssBlockRef(data))
-//         } else {
-//             None
-//         }
-//     }
-// }
+impl GnssConfigBlock {
+    const SIG_CFG_MASK: u32 = 0x00FF;
+    pub fn enabled(&self) -> bool {
+        self.flags & 0x01 == 1
+    }
 
-// mod gnssblock {
+    pub fn sig_cfg_mask(&self) -> SigCfgMask {
+        let sig_cfg: u8 = u32::to_le_bytes((self.flags >> 16) & Self::SIG_CFG_MASK)[0];
+        match self.gnss_id {
+            GnssId::GPS => match sig_cfg {
+                0x01 => SigCfgMask::GPSL1CA,
+                0x10 => SigCfgMask::GPSL2C,
+                0x20 => SigCfgMask::GPSL5,
+                _ => SigCfgMask::Unknown,
+            },
+            GnssId::SBAS => match sig_cfg {
+                0x01 => SigCfgMask::SBASL1CA,
+                _ => SigCfgMask::Unknown,
+            },
+            GnssId::BEIDOU => match sig_cfg {
+                0x01 => SigCfgMask::BEIDOUB1I,
+                0x10 => SigCfgMask::BEIDOUB1C,
+                0x80 => SigCfgMask::BEIDOUB2A,
+                _ => SigCfgMask::Unknown,
+            },
+            GnssId::GALILEO => match sig_cfg {
+                0x01 => SigCfgMask::GALILEOE1,
+                0x10 => SigCfgMask::GALILEOE5A,
+                0x20 => SigCfgMask::GALILEOE5B,
+                _ => SigCfgMask::Unknown,
+            },
+            GnssId::GLONASS => match sig_cfg {
+                0x01 => SigCfgMask::GLONASSL10F,
+                0x10 => SigCfgMask::GLONASSL20F,
+                _ => SigCfgMask::Unknown,
+            },
+            GnssId::QZSS => match sig_cfg {
+                0x01 => SigCfgMask::QZSSL1CA,
+                0x04 => SigCfgMask::QZSSL1S,
+                0x10 => SigCfgMask::QZSSL2C,
+                0x20 => SigCfgMask::QZSSL5,
+                _ => SigCfgMask::Unknown,
+            },
+            GnssId::IMES => SigCfgMask::Unknown,
+        }
+    }
+}
 
-//     use super::GnssBlockIter;
+#[cfg(feature = "ubx_proto23")]
+#[derive(Debug, Clone)]
+pub struct GnssConfigBlockIter<'a>(core::slice::ChunksExact<'a, u8>);
 
-//     pub(crate) fn convert_to_iter(bytes: &[u8]) -> GnssBlockIter {
-//         GnssBlockIter {
-//             data: bytes,
-//             offset: 0,
-//         }
-//     }
+#[cfg(feature = "ubx_proto23")]
+impl<'a> GnssConfigBlockIter<'a> {
+    const BLOCK_SIZE: usize = 8;
+    fn new(bytes: &'a [u8]) -> Self {
+        Self(bytes.chunks_exact(Self::BLOCK_SIZE))
+    }
 
-//     pub(crate) fn is_valid(bytes: &[u8]) -> bool {
-//         bytes.len() % 8 == 0
-//     }
-// }
+    fn is_valid(bytes: &'a [u8]) -> bool {
+        bytes.len() % Self::BLOCK_SIZE == 0
+    }
+}
+
+#[cfg(feature = "ubx_proto23")]
+impl core::iter::Iterator for GnssConfigBlockIter<'_> {
+    type Item = GnssConfigBlock;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        const HALF_BLOCK: usize = 4;
+        let chunk = self.0.next()?;
+        let data = u32::from_le_bytes(chunk[0..HALF_BLOCK].try_into().unwrap());
+        let flags = u32::from_le_bytes(chunk[HALF_BLOCK..Self::BLOCK_SIZE].try_into().unwrap());
+        Some(Self::Item {
+            gnss_id: (((data >> 24) & 0xFF) as u8).try_into().unwrap(),
+            res_trk_ch: (((data >> 16) & 0xFF) as u8),
+            max_trk_ch: (((data >> 8) & 0xFF) as u8),
+            reserved1: 0,
+            flags,
+        })
+    }
+}
 
 #[cfg(feature = "ubx_proto23")]
 /// Synchronization management configuration frame
@@ -3248,7 +3316,7 @@ pub struct CfgEsfAlgFlags {
 
 impl From<u32> for CfgEsfAlgFlags {
     fn from(cfg: u32) -> Self {
-        let version = cfg.to_ne_bytes()[0];
+        let version = cfg.to_le_bytes()[0];
         let auto_alignment = ((cfg >> 8) & 0x01) == 1;
         Self {
             version,
@@ -4049,12 +4117,13 @@ impl EsfMeasData {
 pub struct EsfMeasDataIter<'a>(core::slice::ChunksExact<'a, u8>);
 
 impl<'a> EsfMeasDataIter<'a> {
+    const BLOCK_SIZE: usize = 4;
     fn new(bytes: &'a [u8]) -> Self {
-        Self(bytes.chunks_exact(4))
+        Self(bytes.chunks_exact(Self::BLOCK_SIZE))
     }
 
     fn is_valid(bytes: &'a [u8]) -> bool {
-        bytes.len() % 4 == 0
+        bytes.len() % Self::BLOCK_SIZE == 0
     }
 }
 
@@ -4062,7 +4131,8 @@ impl core::iter::Iterator for EsfMeasDataIter<'_> {
     type Item = EsfMeasData;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let data = self.0.next()?.try_into().map(u32::from_le_bytes).unwrap();
+        let chunk = self.0.next()?;
+        let data = u32::from_le_bytes(chunk[0..Self::BLOCK_SIZE].try_into().unwrap());
         let mut data_field = (data & 0x7FFFFF) as i32;
         let signed = ((data >> 23) & 0x01) == 1;
         if signed {
@@ -4071,7 +4141,7 @@ impl core::iter::Iterator for EsfMeasDataIter<'_> {
         }
 
         Some(EsfMeasData {
-            data_type: (((data & 0x3F000000) >> 24) as u8).into(),
+            data_type: (((data >> 24) & 0x3F) as u8).into(),
             data_field,
         })
     }
@@ -4153,12 +4223,13 @@ pub struct EsfRawData {
 pub struct EsfRawDataIter<'a>(core::slice::ChunksExact<'a, u8>);
 
 impl<'a> EsfRawDataIter<'a> {
+    const BLOCK_SIZE: usize = 8;
     fn new(bytes: &'a [u8]) -> Self {
-        Self(bytes.chunks_exact(8))
+        Self(bytes.chunks_exact(Self::BLOCK_SIZE))
     }
 
     fn is_valid(bytes: &'a [u8]) -> bool {
-        bytes.len() % 8 == 0
+        bytes.len() % Self::BLOCK_SIZE == 0
     }
 }
 
@@ -4166,9 +4237,11 @@ impl core::iter::Iterator for EsfRawDataIter<'_> {
     type Item = EsfRawData;
 
     fn next(&mut self) -> Option<Self::Item> {
+        const HALF_BLOCK: usize = 4;
         let chunk = self.0.next()?;
-        let data = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
-        let sensor_time_tag = u32::from_le_bytes(chunk[4..8].try_into().unwrap());
+        let data = u32::from_le_bytes(chunk[0..HALF_BLOCK].try_into().unwrap());
+        let sensor_time_tag =
+            u32::from_le_bytes(chunk[HALF_BLOCK..Self::BLOCK_SIZE].try_into().unwrap());
         Some(EsfRawData {
             data_type: ((data >> 24) & 0xFF).try_into().unwrap(),
             data_field: data & 0xFFFFFF,
@@ -4545,12 +4618,13 @@ impl EsfSensorStatus {
 pub struct EsfSensorStatusIter<'a>(core::slice::ChunksExact<'a, u8>);
 
 impl<'a> EsfSensorStatusIter<'a> {
+    const BLOCK_SIZE: usize = 4;
     fn new(bytes: &'a [u8]) -> Self {
-        Self(bytes.chunks_exact(4))
+        Self(bytes.chunks_exact(Self::BLOCK_SIZE))
     }
 
     fn is_valid(bytes: &'a [u8]) -> bool {
-        bytes.len() % 4 == 0
+        bytes.len() % Self::BLOCK_SIZE == 0
     }
 }
 
@@ -4559,7 +4633,7 @@ impl core::iter::Iterator for EsfSensorStatusIter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let chunk = self.0.next()?;
-        let data = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
+        let data = u32::from_le_bytes(chunk[0..Self::BLOCK_SIZE].try_into().unwrap());
         Some(EsfSensorStatus {
             sens_status1: ((data & 0xFF) as u8).into(),
             sens_status2: (((data >> 8) & 0xFF) as u8).into(),
@@ -5099,7 +5173,7 @@ define_recv_packets!(
         CfgEsfAlg,
         CfgEsfWt,
         CfgItfm,
-        // CfgGnss,
+        CfgGnss,
         CfgNav5,
         CfgOdo,
         CfgPrtI2c,

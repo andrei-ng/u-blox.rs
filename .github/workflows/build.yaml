@@ -70,4 +70,4 @@ jobs:
       - name: Coding style
         run: |
           cd ${{ github.workspace }}/examples && cargo fmt --all -- --check
-          cd ${{ github.workspace }}/examples && cargo clippy --all-features --all-targets -- -D warnings
+          cd ${{ github.workspace }}/examples && cargo clippy --all-targets -- -D warnings

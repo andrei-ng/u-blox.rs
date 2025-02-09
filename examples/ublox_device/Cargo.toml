@@ -1,13 +1,18 @@
 [package]
-authors = ["Andrei Gherghescu <gandrein@pm.me>"]
+name = "ublox_device"
+authors = ["Andrei Gherghescu <andrei-ng@protonmail.com>"]
 edition = "2021"
-name = "send-receive-multiple-threads"
 publish = false
+rust-version = "1.70"
 version = "0.1.0"
 
 [dependencies]
+anyhow = "1.0"
 chrono = "0.4"
 clap = { version = "4.2", features = ["cargo"] }
 serde_json = "1.0"
 serialport = "4.2"
 ublox = { path = "../../ublox" }
+
+[features]
+alloc = ["ublox/alloc"]

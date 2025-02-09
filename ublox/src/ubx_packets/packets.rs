@@ -1517,6 +1517,7 @@ pub enum SigCfgMask {
 }
 /// Multi-GNSS config
 /// Deprecatred in protocol versions above 23
+/// Use CfgValSet and CfgValGet for newer protocol version
 // Cannot use the ubx_packet_recv_send macro as this packet is
 // of variable length
 #[cfg(feature = "ubx_proto23")]

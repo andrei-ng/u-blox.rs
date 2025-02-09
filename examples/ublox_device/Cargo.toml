@@ -12,7 +12,8 @@ chrono = "0.4"
 clap = { version = "4.2", features = ["cargo"] }
 serde_json = "1.0"
 serialport = "4.2"
-ublox = { path = "../../ublox" }
 
-[features]
-alloc = ["ublox/alloc"]
+ublox = { path = "../../ublox", default-features = false, features = [
+    "ubx_proto23",
+    "alloc",
+] }

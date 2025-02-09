@@ -8,7 +8,6 @@ use std::{
 
 use log::error;
 
-use clap::ArgMatches;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     crossterm::{
@@ -24,12 +23,11 @@ use tracing::{debug, info, instrument};
 
 use crate::{
     app::{App, UbxStatus},
-    device::Device,
-    ui,
+    backend, cli, ui,
 };
 
-pub fn run(cli: &ArgMatches, log_file: PathBuf) -> Result<(), Box<dyn Error>> {
-    let tick_rate: u64 = *cli.get_one("tui-rate").ok_or("Missing tui-rate cli arg")?;
+pub fn run(cli: &clap::Command, log_file: PathBuf) -> Result<(), Box<dyn Error>> {
+    let tick_rate: u64 = cli::tui_rate(cli);
     let tick_rate = Duration::from_millis(tick_rate);
 
     // trace_dbg!(level: tracing::Level::INFO,"test");
@@ -43,8 +41,11 @@ pub fn run(cli: &ArgMatches, log_file: PathBuf) -> Result<(), Box<dyn Error>> {
 
     let (ubx_msg_tx, ubx_msg_rs) = channel();
 
-    let device = Device::build(cli);
-    device.run(ubx_msg_tx);
+    let serialport = ublox_device::cli::Command::serialport(cli.clone());
+    let device = ublox_device::Device::new(serialport);
+    let mut backend_device = backend::UbxDevice::from(device);
+    backend_device.configure();
+    backend_device.run(ubx_msg_tx);
 
     let app = App::new("uBlox TUI", log_file);
     let app_result = run_app(&mut terminal, app, tick_rate, ubx_msg_rs);

@@ -1,11 +1,8 @@
 use std::{error::Error, sync::mpsc::channel};
 
-use clap::ArgMatches;
-use device::Device;
-
 mod app;
+mod backend;
 mod cli;
-mod device;
 mod logging;
 mod tui;
 mod ui;
@@ -13,7 +10,7 @@ mod ui;
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = cli::parse_args();
 
-    if cli.get_flag("debug-mode") {
+    if cli::tui_debug_mode(&cli) {
         device_debug_mode(&cli);
     } else {
         let log_file = logging::initialize(&cli)?;
@@ -22,7 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn device_debug_mode(cli: &ArgMatches) {
+fn device_debug_mode(cli: &clap::Command) {
     use log::error;
     env_logger::Builder::new()
         .filter_level(log::LevelFilter::Info)
@@ -31,8 +28,12 @@ fn device_debug_mode(cli: &ArgMatches) {
 
     let (ubx_msg_tx, ubx_msg_rs) = channel();
 
-    let device = Device::build(cli);
-    device.run(ubx_msg_tx);
+    let serialport = ublox_device::cli::Command::serialport(cli.clone());
+    let device = ublox_device::Device::new(serialport);
+
+    let mut backend_device = backend::UbxDevice::from(device);
+    backend_device.configure();
+    backend_device.run(ubx_msg_tx);
 
     loop {
         match ubx_msg_rs.recv() {

@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 
-use anyhow::{Ok, Result};
-use clap::ArgMatches;
+use anyhow::Result;
 use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use log::LevelFilter;
 use tracing::info;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{self, layer::SubscriberExt, util::SubscriberInitExt, Layer};
+
+use crate::cli;
 
 lazy_static! {
     pub static ref PROJECT_NAME: String = env!("CARGO_CRATE_NAME").to_uppercase().to_string();
@@ -34,7 +35,7 @@ pub fn get_data_dir() -> PathBuf {
     directory
 }
 
-pub fn initialize(cli: &ArgMatches) -> Result<PathBuf> {
+pub fn initialize(cli: &clap::Command) -> Result<PathBuf> {
     std::env::set_var(
         "RUST_LOG",
         std::env::var("RUST_LOG")
@@ -42,7 +43,7 @@ pub fn initialize(cli: &ArgMatches) -> Result<PathBuf> {
             .unwrap_or_else(|_| format!("{}=info", env!("CARGO_CRATE_NAME"))),
     );
 
-    let log_file = if cli.get_flag("log-file") {
+    let log_file = if cli::tui_log_to_file(cli) {
         let directory = get_data_dir();
         info!("Log to file : {:?}", directory);
         std::fs::create_dir_all(directory.clone())?;

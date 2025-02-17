@@ -359,7 +359,7 @@ fn render_esf_imu_alignment_status(frame: &mut Frame, area: Rect, app: &mut App)
             Cell::from(format!("{:.4}", app.esf_alg_imu_alignment_state.roll)),
         ]),
         Row::new([
-            Cell::from("Mounting-Pith (deg)"),
+            Cell::from("Mounting-Pitch (deg)"),
             Cell::from(format!("{:.4}", app.esf_alg_imu_alignment_state.pitch)),
         ]),
         Row::new([

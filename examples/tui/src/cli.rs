@@ -25,7 +25,7 @@ pub fn parse_args() -> clap::Command {
                 .value_name("tui-rate")
                 .long("tui-rate")
                 .required(false)
-                .default_value("100")
+                .default_value("10")
                 .value_parser(value_parser!(u64))
                 .help("TUI refresh rate in milliseconds"),
         )

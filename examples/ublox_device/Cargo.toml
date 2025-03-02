@@ -13,7 +13,11 @@ clap = { version = "4.2", features = ["cargo"] }
 serde_json = "1.0"
 serialport = "4.2"
 
-ublox = { path = "../../ublox", default-features = false, features = [
-    "ubx_proto23",
-    "alloc",
-] }
+ublox = { path = "../../ublox", default-features = false }
+
+[features]
+default = ["alloc", "ubx_proto23"]
+alloc = ["ublox/alloc"]
+ubx_proto23 = ["ublox/ubx_proto23"]
+ubx_proto27 = ["ublox/ubx_proto27"]
+ubx_proto31 = ["ublox/ubx_proto31"]

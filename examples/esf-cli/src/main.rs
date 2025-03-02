@@ -201,7 +201,7 @@ impl ublox_device::UbxPacketHandler for PkgHandler {
 
             PacketRef::EsfMeas(msg) => {
                 println!("{:?}", msg);
-                println!("time_tag: {}", msg.time_tag());
+                println!("time_tag: {}", msg.itow());
                 for s in msg.data() {
                     println!("{:?}", s);
                     println!("{:?}", s.value());

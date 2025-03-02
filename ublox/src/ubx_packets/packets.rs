@@ -4017,7 +4017,7 @@ struct RxmRtcm {
 #[ubx_packet_recv]
 #[ubx(class = 0x10, id = 0x02, max_payload_len = 1240)]
 struct EsfMeas {
-    time_tag: u32,
+    itow: u32,
     #[ubx(map_type = EsfMeasFlags, from = EsfMeasFlags)]
     flags: u16,
     id: u16,
@@ -4191,7 +4191,7 @@ impl fmt::Debug for EsfMeasFlags {
 )]
 #[derive(Debug, Clone)]
 struct EsfMeasSpeed {
-    time_tag: u32,
+    itow: u32,
     flags: u16,
     id: u16,
     data: [u8; 4],

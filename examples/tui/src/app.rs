@@ -7,7 +7,98 @@ use ublox::{
     EsfStatusWheelTickInit, GpsFix, NavPvtFlags, NavPvtFlags2,
 };
 
-use crate::ui::LogWidget;
+use crate::{signal::Signal, ui::LogWidget};
+
+#[allow(dead_code)]
+pub struct App<'a> {
+    pub title: &'a str,
+    pub log_file: PathBuf,
+    pub pvt_state: NavPvtWidgetState,
+    pub mon_ver_state: MonVersionWidgetState,
+    pub esf_sensors_state: EsfSensorsWidgetState,
+    pub esf_alg_state: EsfAlgStatusWidgetState,
+    pub esf_alg_imu_alignment_state: EsfAlgImuAlignmentWidgetState,
+    pub should_quit: bool,
+    pub tabs: TabsState<'a>,
+    pub log_widget: LogWidget,
+    pub signals: Signals,
+}
+
+impl<'a> App<'a> {
+    pub fn new(title: &'a str, log_file: PathBuf) -> Self {
+        let mut speed = Signal::new(0.2, 3.0, 18.0);
+        let mut wt_rl = Signal::new(0.1, 2.0, 10.0);
+        let data1 = speed.by_ref().take(200).collect::<Vec<(f64, f64)>>();
+        let data2 = wt_rl.by_ref().take(200).collect::<Vec<(f64, f64)>>();
+        let signals = Signals {
+            speed,
+            speed_data: data1,
+            wt_rl: wt_rl.clone(),
+            wt_rl_data: data2.clone(),
+            wt_rr: wt_rl,
+            wt_rr_data: data2,
+            window: [0.0, 20.0],
+        };
+
+        App {
+            title,
+            log_file,
+            pvt_state: NavPvtWidgetState::default(),
+            mon_ver_state: MonVersionWidgetState::default(),
+            esf_sensors_state: EsfSensorsWidgetState::default(),
+            esf_alg_state: EsfAlgStatusWidgetState::default(),
+            esf_alg_imu_alignment_state: EsfAlgImuAlignmentWidgetState::default(),
+            should_quit: false,
+            log_widget: LogWidget,
+            tabs: TabsState::new(vec![
+                "PVT",
+                "ESF Status",
+                "ESF Charts",
+                "Version Info",
+                "World Map",
+            ]),
+            signals,
+        }
+    }
+
+    pub fn on_right(&mut self) {
+        self.tabs.next();
+    }
+
+    pub fn on_left(&mut self) {
+        self.tabs.previous();
+    }
+
+    pub fn on_key(&mut self, c: char) {
+        match c {
+            'q' => {
+                self.should_quit = true;
+            },
+            'Q' => {
+                self.should_quit = true;
+            },
+            _ => {},
+        }
+    }
+    pub fn on_tick(&mut self) {
+        self.signals.speed_data.drain(0..5);
+        self.signals
+            .speed_data
+            .extend(self.signals.speed.by_ref().take(5));
+
+        self.signals.wt_rl_data.drain(0..10);
+        self.signals
+            .wt_rl_data
+            .extend(self.signals.wt_rl.by_ref().take(10));
+
+        self.signals.wt_rr_data.drain(0..10);
+        self.signals
+            .wt_rr_data
+            .extend(self.signals.wt_rr.by_ref().take(10));
+        self.signals.window[0] += 1.0;
+        self.signals.window[1] += 1.0;
+    }
+}
 
 pub struct TabsState<'a> {
     pub titles: Vec<&'a str>,
@@ -192,53 +283,13 @@ pub struct MonVersionWidgetState {
     pub extensions: String,
 }
 
-#[allow(dead_code)]
-pub struct App<'a> {
-    pub title: &'a str,
-    pub log_file: PathBuf,
-    pub pvt_state: NavPvtWidgetState,
-    pub mon_ver_state: MonVersionWidgetState,
-    pub esf_sensors_state: EsfSensorsWidgetState,
-    pub esf_alg_state: EsfAlgStatusWidgetState,
-    pub esf_alg_imu_alignment_state: EsfAlgImuAlignmentWidgetState,
-    pub should_quit: bool,
-    pub tabs: TabsState<'a>,
-    pub log_widget: LogWidget,
-}
-
-impl<'a> App<'a> {
-    pub fn new(title: &'a str, log_file: PathBuf) -> Self {
-        App {
-            title,
-            log_file,
-            pvt_state: NavPvtWidgetState::default(),
-            mon_ver_state: MonVersionWidgetState::default(),
-            esf_sensors_state: EsfSensorsWidgetState::default(),
-            esf_alg_state: EsfAlgStatusWidgetState::default(),
-            esf_alg_imu_alignment_state: EsfAlgImuAlignmentWidgetState::default(),
-            should_quit: false,
-            log_widget: LogWidget,
-            tabs: TabsState::new(vec!["PVT & ESF Status", "Version Info", "World Map"]),
-        }
-    }
-
-    pub fn on_right(&mut self) {
-        self.tabs.next();
-    }
-
-    pub fn on_left(&mut self) {
-        self.tabs.previous();
-    }
-
-    pub fn on_key(&mut self, c: char) {
-        match c {
-            'q' => {
-                self.should_quit = true;
-            },
-            'Q' => {
-                self.should_quit = true;
-            },
-            _ => {},
-        }
-    }
+#[derive(Debug, Default)]
+pub struct Signals {
+    pub speed: Signal,
+    pub speed_data: Vec<(f64, f64)>,
+    pub wt_rl: Signal,
+    pub wt_rl_data: Vec<(f64, f64)>,
+    pub wt_rr: Signal,
+    pub wt_rr_data: Vec<(f64, f64)>,
+    pub window: [f64; 2],
 }

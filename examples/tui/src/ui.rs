@@ -6,7 +6,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{
         canvas::{Canvas, Circle, Map, MapResolution},
-        Block, Cell, Paragraph, Row, Table, Tabs, Widget, Wrap,
+        Axis, Block, Cell, Chart, Dataset, Paragraph, Row, Table, Tabs, Widget, Wrap,
     },
     Frame,
 };
@@ -72,16 +72,31 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .select(app.tabs.index);
     frame.render_widget(tabs, chunks[0]);
     match app.tabs.index {
-        0 => draw_state_tab(frame, app, chunks[1]),
-        1 => draw_version_info(frame, app, chunks[1]),
-        2 => draw_map(frame, app, chunks[1]),
+        0 => draw_pvt_tab(frame, app, chunks[1]),
+        1 => draw_esf_tab(frame, app, chunks[1]),
+        2 => draw_esf_charts_tab(frame, app, chunks[1]),
+        3 => draw_version_info(frame, app, chunks[1]),
+        4 => draw_map(frame, app, chunks[1]),
         _ => {},
     };
 }
 
-fn draw_state_tab(frame: &mut Frame, app: &mut App, area: Rect) {
+fn draw_pvt_tab(frame: &mut Frame, app: &mut App, area: Rect) {
     let chunks = Layout::vertical([Constraint::Length(24), Constraint::Min(7)]).split(area);
-    render_pvt_and_esf_statuses(frame, chunks[0], app);
+    render_pvt_state(frame, chunks[0], app);
+    frame.render_widget(&mut app.log_widget, chunks[1]);
+}
+
+fn draw_esf_tab(frame: &mut Frame, app: &mut App, area: Rect) {
+    let chunks = Layout::vertical([Constraint::Length(24), Constraint::Min(7)]).split(area);
+    render_esf_status(frame, chunks[0], app);
+    frame.render_widget(&mut app.log_widget, chunks[1]);
+}
+
+fn draw_esf_charts_tab(frame: &mut Frame, app: &mut App, area: Rect) {
+    let chunks =
+        Layout::vertical([Constraint::Percentage(70), Constraint::Percentage(30)]).split(area);
+    render_sensor_charts(frame, chunks[0], app);
     frame.render_widget(&mut app.log_widget, chunks[1]);
 }
 
@@ -89,14 +104,6 @@ fn draw_version_info(frame: &mut Frame, app: &mut App, area: Rect) {
     let chunks = Layout::vertical([Constraint::Length(24), Constraint::Min(7)]).split(area);
     render_monver(frame, chunks[0], app);
     frame.render_widget(&mut app.log_widget, chunks[1]);
-}
-
-fn render_pvt_and_esf_statuses(frame: &mut Frame, area: Rect, app: &mut App) {
-    let chunks =
-        Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)]).split(area);
-
-    render_pvt_state(frame, chunks[0], app);
-    render_esf_status(frame, chunks[1], app);
 }
 
 fn render_pvt_state(frame: &mut Frame, area: Rect, app: &mut App) {
@@ -477,6 +484,67 @@ fn render_esf_sensor_status(frame: &mut Frame, area: Rect, app: &mut App) {
         .style(Color::White);
 
     frame.render_widget(table, area);
+}
+
+fn render_sensor_charts(frame: &mut Frame, area: Rect, app: &mut App) {
+    let vertical = Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)]);
+    let [top, _bottom] = vertical.areas(area);
+
+    render_speed_chart(frame, top, app);
+    // render_speed_chart(frame, bottom, app);
+}
+
+fn render_speed_chart(frame: &mut Frame, area: Rect, app: &mut App) {
+    let x_labels = vec![
+        Span::styled(
+            format!("{}", app.signals.window[0]),
+            Style::default().add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(format!(
+            "{}",
+            (app.signals.window[0] + app.signals.window[1]) / 2.0
+        )),
+        Span::styled(
+            format!("{}", app.signals.window[1]),
+            Style::default().add_modifier(Modifier::BOLD),
+        ),
+    ];
+    let datasets = vec![
+        Dataset::default()
+            .name("Speed")
+            .marker(symbols::Marker::Dot)
+            .style(Style::default().fg(Color::Cyan))
+            .data(&app.signals.speed_data),
+        Dataset::default()
+            .name("WT RL")
+            .marker(symbols::Marker::Braille)
+            .style(Style::default().fg(Color::Yellow))
+            .data(&app.signals.wt_rl_data),
+        Dataset::default()
+            .name("WT RR")
+            .marker(symbols::Marker::Braille)
+            .style(Style::default().fg(Color::Red))
+            .data(&app.signals.wt_rr_data),
+    ];
+
+    let chart = Chart::new(datasets)
+        .block(Block::bordered())
+        .x_axis(
+            Axis::default()
+                .title("Time [sec]")
+                .style(Style::default().fg(Color::Gray))
+                .labels(x_labels)
+                .bounds(app.signals.window),
+        )
+        .y_axis(
+            Axis::default()
+                .title("Speed [m/s]")
+                .style(Style::default().fg(Color::Gray))
+                .labels(["-20".bold(), "0".into(), "20".bold()])
+                .bounds([-20.0, 20.0]),
+        );
+
+    frame.render_widget(chart, area);
 }
 
 fn render_monver(frame: &mut Frame, area: Rect, app: &mut App) {

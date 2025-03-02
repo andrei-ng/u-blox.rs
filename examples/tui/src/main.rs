@@ -4,6 +4,7 @@ mod app;
 mod backend;
 mod cli;
 mod logging;
+mod signal;
 mod tui;
 mod ui;
 

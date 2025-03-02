@@ -20,6 +20,7 @@ use ratatui::{
 
 use anyhow::Result;
 use tracing::{debug, info, instrument};
+use ublox::SensorData;
 
 use crate::{
     app::{App, UbxStatus},
@@ -103,7 +104,7 @@ fn run_app<B: Backend>(
 }
 
 fn update_states(app: &mut App, receiver: &Receiver<UbxStatus>) {
-    match receiver.try_recv() {
+    match receiver.recv_timeout(std::time::Duration::from_millis(5)) {
         Ok(UbxStatus::Pvt(v)) => {
             app.pvt_state = *v;
         },
@@ -118,6 +119,34 @@ fn update_states(app: &mut App, receiver: &Receiver<UbxStatus>) {
         },
         Ok(UbxStatus::EsfAlgSensors(v)) => {
             app.esf_sensors_state = v;
+        },
+        Ok(UbxStatus::EsfMeas(v)) => {
+            for meas in v.measurements.iter() {
+                let value = match meas.value() {
+                    SensorData::Tick(v) => v as f64,
+                    SensorData::Value(v) => v as f64,
+                };
+                let value = (v.time_tag, value);
+                match meas.data_type {
+                    ublox::EsfSensorType::AccX => app.signals.acc_x.append(value),
+                    ublox::EsfSensorType::AccY => app.signals.acc_y.append(value),
+                    ublox::EsfSensorType::AccZ => app.signals.acc_z.append(value),
+                    ublox::EsfSensorType::GyroX => app.signals.gyro_x.append(value),
+                    ublox::EsfSensorType::GyroY => app.signals.gyro_y.append(value),
+                    ublox::EsfSensorType::GyroZ => app.signals.gyro_z.append(value),
+                    ublox::EsfSensorType::GyroTemp => app.signals.gyro_temp.append(value),
+                    ublox::EsfSensorType::FrontLeftWheelTicks => app.signals.wt_fl.append(value),
+                    ublox::EsfSensorType::FrontRightWheelTicks => app.signals.wt_fr.append(value),
+                    ublox::EsfSensorType::RearLeftWheelTicks => app.signals.wt_rl.append(value),
+                    ublox::EsfSensorType::RearRightWheelTicks => app.signals.wt_rr.append(value),
+                    ublox::EsfSensorType::Speed => app.signals.speed.append(value),
+                    ublox::EsfSensorType::SpeedTick => app.signals.speed_tick.append(value),
+                    _ => {
+                        unimplemented!("Not implemented for {:?}", meas.data_type);
+                    },
+                }
+                // app.signals.wt_rl_data.push(value);
+            }
         },
         _ => {}, // Err(e) => println!("Not value from channel"),
     }

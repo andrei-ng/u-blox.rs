@@ -4,8 +4,8 @@ use tracing::{debug, error, info, trace};
 use ublox::*;
 
 use crate::app::{
-    EsfAlgImuAlignmentWidgetState, EsfAlgStatusWidgetState, EsfSensorWidget, EsfSensorsWidgetState,
-    MonVersionWidgetState, NavPvtWidgetState, UbxStatus,
+    EsfAlgImuAlignmentWidgetState, EsfAlgStatusWidgetState, EsfMeasurementWidgetState,
+    EsfSensorWidget, EsfSensorsWidgetState, MonVersionWidgetState, NavPvtWidgetState, UbxStatus,
 };
 
 pub struct UbxDevice {
@@ -45,6 +45,9 @@ impl UbxDevice {
         self.device
             .write_all(&UbxPacketRequest::request_for::<EsfStatus>().into_packet_bytes())
             .expect("Unable to write request/poll for UBX-ESF-STATUS message");
+        self.device
+            .write_all(&UbxPacketRequest::request_for::<EsfMeas>().into_packet_bytes())
+            .expect("Unable to write request/poll for UBX-ESF-MEAS message");
     }
 
     pub fn run(mut self, sender: Sender<UbxStatus>) {
@@ -174,6 +177,18 @@ impl UbxDevice {
                     // debug!("{:?}", pkg);
                 },
 
+                PacketRef::EsfMeas(pkg) => {
+                    let mut esf_meas = EsfMeasurementWidgetState {
+                        time_tag: (pkg.itow() as f64) / 1000.0,
+                        ..Default::default()
+                    };
+                    for s in pkg.data() {
+                        esf_meas.measurements.push(s)
+                    }
+
+                    sender.send(UbxStatus::EsfMeas(esf_meas)).unwrap();
+                    // debug!("{:?}", pkg);
+                },
                 _ => {
                     trace!("{:?}", packet);
                 },

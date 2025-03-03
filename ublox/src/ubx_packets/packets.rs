@@ -34,7 +34,7 @@ pub(crate) trait SerializeUbxPacketFields {
         S: serde::ser::SerializeMap;
 }
 
-/// Navigation clock solution,
+/// Geodetic Position Solution
 /// current receiver clock bias and drift estimates
 #[ubx_packet_recv]
 #[ubx(class = 0x01, id = 0x22, fixed_payload_len = 20)]
@@ -1267,7 +1267,7 @@ impl CfgItfmConfig {
     }
 
     const fn into_raw(self) -> u32 {
-        (self.enable as u32) << 31
+        ((self.enable as u32) << 31)
             | self.cw_threshold.into_raw()
             | self.bb_threshold.into_raw()
             | self.algorithm_bits.into_raw()
@@ -1460,7 +1460,7 @@ impl From<u32> for CfgItfmAntennaSettings {
     }
 }
 
-/// GNSS system types
+/// Information message conifg
 #[repr(u8)]
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
@@ -4089,24 +4089,20 @@ impl EsfMeasData {
                 let tick = (self.data_field & 0x7FFFFF) * (self.direction() as i32);
                 SensorData::Tick(tick)
             },
+            EsfSensorType::Speed => {
+                let value = (self.data_field & 0x7FFFFF) as f32 * (self.direction() as f32) * 1e-3;
+                SensorData::Value(value)
+            },
             EsfSensorType::GyroX | EsfSensorType::GyroY | EsfSensorType::GyroZ => {
-                let value = (self.data_field & 0x7FFFFF) as f32
-                    * (self.direction() as f32)
-                    * 2_f32.powi(-12);
+                let value = (self.data_field & 0x7FFFFF) as f32 * 2_f32.powi(-12);
                 SensorData::Value(value)
             },
             EsfSensorType::AccX | EsfSensorType::AccY | EsfSensorType::AccZ => {
-                let value = (self.data_field & 0x7FFFFF) as f32
-                    * (self.direction() as f32)
-                    * 2_f32.powi(-10);
+                let value = (self.data_field & 0x7FFFFF) as f32 * 2_f32.powi(-10);
                 SensorData::Value(value)
             },
             EsfSensorType::GyroTemp => {
-                let value = (self.data_field & 0x7FFFFF) as f32 * (self.direction() as f32) * 1e-2;
-                SensorData::Value(value)
-            },
-            EsfSensorType::Speed => {
-                let value = (self.data_field & 0x7FFFFF) as f32 * (self.direction() as f32) * 1e-3;
+                let value = (self.data_field & 0x7FFFFF) as f32 * 1e-2;
                 SensorData::Value(value)
             },
             _ => SensorData::Value(0f32),
@@ -4119,6 +4115,7 @@ pub struct EsfMeasDataIter<'a>(core::slice::ChunksExact<'a, u8>);
 
 impl<'a> EsfMeasDataIter<'a> {
     const BLOCK_SIZE: usize = 4;
+    const DIRECTION_INDICATOR_BIT: usize = 23;
     fn new(bytes: &'a [u8]) -> Self {
         Self(bytes.chunks_exact(Self::BLOCK_SIZE))
     }
@@ -4135,8 +4132,9 @@ impl core::iter::Iterator for EsfMeasDataIter<'_> {
         let chunk = self.0.next()?;
         let data = u32::from_le_bytes(chunk[0..Self::BLOCK_SIZE].try_into().unwrap());
         let mut data_field = (data & 0x7FFFFF) as i32;
-        let signed = ((data >> 23) & 0x01) == 1;
-        if signed {
+        let backward = ((data >> Self::DIRECTION_INDICATOR_BIT) & 0x01) == 1;
+        // Turn value into valid negative integer representation
+        if backward {
             data_field ^= 0x800000;
             data_field = data_field.wrapping_neg();
         }
@@ -4668,18 +4666,31 @@ impl From<u8> for SensorStatus1 {
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub enum EsfSensorType {
     None = 0,
+    /// Angular acceleration in [deg/s]
     GyroZ = 5,
+    /// Unitless (counter)
     FrontLeftWheelTicks = 6,
+    /// Unitless (counter)
     FrontRightWheelTicks = 7,
+    /// Unitless (counter)
     RearLeftWheelTicks = 8,
+    /// Unitless (counter)
     RearRightWheelTicks = 9,
+    /// Unitless (counter)
     SpeedTick = 10,
+    /// Speed in [m/s]
     Speed = 11,
+    /// Temperature Celsius [deg]
     GyroTemp = 12,
+    /// Angular acceleration in [deg/s]
     GyroY = 13,
+    /// Angular acceleration in [deg/s]
     GyroX = 14,
+    /// Specific force in [m/s^2]
     AccX = 16,
+    /// Specific force in [m/s^2]
     AccY = 17,
+    /// Specific force in [m/s^2]
     AccZ = 18,
     Unknown = 19,
 }

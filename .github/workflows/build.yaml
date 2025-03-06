@@ -66,11 +66,13 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Build
-        run: cd ${{ github.workspace }}/examples && cargo build --release
+        working-directory: examples
+        run: cargo build --release
       - name: Coding style
+        working-directory: examples
         run: |
-          cd ${{ github.workspace }}/examples && cargo fmt --all -- --check
-          cd ${{ github.workspace }}/examples && cargo clippy --all-targets -- -D warnings
+          cargo fmt --all -- --check
+          cargo clippy --all-targets -- -D warnings
 
   msrv:
     runs-on: ubuntu-latest
@@ -88,5 +90,5 @@ jobs:
       - name: Install libudev
         run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Check MSRV for examples
-        working-directory: ${{ github.workspace }}/examples
+        working-directory: examples
         run: cargo hack check --rust-version --workspace

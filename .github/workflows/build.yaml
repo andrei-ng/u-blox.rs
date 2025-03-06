@@ -77,4 +77,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: taiki-e/install-action@cargo-hack
-      - run: cargo hack check --rust-version --workspace
+      - name: Check MSRV
+        run: cargo hack check --rust-version --workspace
+      - name: Check MSRV for examples
+        working-directory: ${{ github.workspace }}/examples
+        run: cargo hack check --rust-version --workspace

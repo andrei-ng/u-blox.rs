@@ -6,6 +6,7 @@ license = "MIT"
 name = "ublox_derive"
 publish = false
 version = "0.1.0"
+rust-version.workspace = true
 
 [lib]
 proc-macro = true

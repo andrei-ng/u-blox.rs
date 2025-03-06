@@ -79,6 +79,14 @@ jobs:
       - uses: taiki-e/install-action@cargo-hack
       - name: Check MSRV
         run: cargo hack check --rust-version --workspace
+
+  msrv_examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@cargo-hack
+      - name: Install libudev
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
       - name: Check MSRV for examples
         working-directory: ${{ github.workspace }}/examples
         run: cargo hack check --rust-version --workspace

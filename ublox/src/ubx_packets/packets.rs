@@ -18,6 +18,7 @@ use crate::error::{MemWriterError, ParserError};
 #[cfg(feature = "serde")]
 use crate::serde::ser::SerializeMap;
 use crate::ubx_packets::packets::mon_ver::is_cstr_valid;
+use crate::FieldIter;
 
 use super::{
     ubx_checksum, MemWriter, Position, UbxChecksumCalc, UbxPacketCreator, UbxPacketMeta,

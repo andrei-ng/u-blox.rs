@@ -43,7 +43,7 @@ fn generate_serialize_impl(
             quote! {
                 state.serialize_entry(
                     stringify!(#field_name),
-                    &crate::ubx_packets::FieldIter(self.#field_accessor())
+                    &FieldIter(self.#field_accessor())
                 )?;
             }
         }
@@ -731,7 +731,7 @@ pub fn generate_code_for_parse(recv_packs: &RecvPackets) -> TokenStream {
         });
 
         serializers.push(quote! {
-            #union_enum_name::#name(ref msg) => crate::ubx_packets::PacketSerializer {
+            #union_enum_name::#name(ref msg) => PacketSerializer {
                 class: #name::CLASS,
                 msg_id: #name::ID,
                 msg,
